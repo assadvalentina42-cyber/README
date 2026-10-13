@@ -25,19 +25,19 @@
   --font-body:'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-logo:'Poppins', sans-serif;
 }
-@supports (height:100dvh){
+@supports (height:100svh){
   :root{
-    --u:max(min(.72px, calc(100dvh / 700)), min(calc(100vw / 1353), calc(100dvh / 1163)));
-    --vshift:calc(max(0px, (100dvh - var(--dh-px))) * .42);
+    --u:max(min(.72px, calc(100svh / 700)), min(calc(100vw / 1353), calc(100svh / 1163)));
+    --vshift:calc(max(0px, (100svh - var(--dh-px))) * .42);
   }
 }
-html,body{height:100%}
-body{background:#04101f; color:var(--ink); font-family:var(--font-body);
+html{height:100%}
+body{min-height:100%; background:#04101f; color:var(--ink); font-family:var(--font-body);
   -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-  text-rendering:geometricPrecision; overflow:hidden}
+  text-rendering:geometricPrecision; overflow-x:hidden}
 
 /* ── STAGE ─────────────────────────────────────────────────────────── */
-.stage{position:fixed; inset:0; overflow:hidden; isolation:isolate}
+.stage{position:relative; z-index:2; height:100vh; height:100svh; overflow:hidden; isolation:isolate}
 .sky{position:absolute; inset:0; z-index:0;
   background-image:url("https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_508c64b8-a31e-4290-bdfc-1187df70e0a6.png");
   background-size:cover; background-position:center; background-repeat:no-repeat}
@@ -69,7 +69,7 @@ body{background:#04101f; color:var(--ink); font-family:var(--font-body);
 .col{position:absolute; left:0; right:calc(var(--gutter) * var(--u)); text-align:center}
 
 /* ── NAV ───────────────────────────────────────────────────────────── */
-.navbar{position:absolute; top:0; left:0; right:0; z-index:6; height:calc(88 * var(--u))}
+.navbar{position:fixed; top:0; left:0; right:0; z-index:6; height:calc(88 * var(--u))}
 .navbar::after{content:""; position:absolute; left:calc(25 * var(--u));
   right:calc(49 * var(--u)); top:calc(86 * var(--u)); height:calc(2 * var(--u));
   background:var(--rule)}
@@ -216,10 +216,10 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
     --u:min(max(min(.85px, calc(100vh / 780)), min(calc(100vw / 900), calc(100vh / 1163))), 1.15px);
     --dh-px:calc(1120 * var(--u));
     --vshift:calc(max(0px, (100vh - var(--dh-px))) * .38)}
-  @supports (height:100dvh){
+  @supports (height:100svh){
     :root{
-      --u:min(max(min(.85px, calc(100dvh / 780)), min(calc(100vw / 900), calc(100dvh / 1163))), 1.15px);
-      --vshift:calc(max(0px, (100dvh - var(--dh-px))) * .38)}
+      --u:min(max(min(.85px, calc(100svh / 780)), min(calc(100vw / 900), calc(100svh / 1163))), 1.15px);
+      --vshift:calc(max(0px, (100svh - var(--dh-px))) * .38)}
   }
   .navbar::after{left:calc(25 * var(--u)); right:calc(25 * var(--u))}
   p.lede br{display:none}
@@ -233,10 +233,10 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
     --u:max(min(.92px, calc(100vh / 620)), min(calc(100vw / 430), calc(100vh / 880)));
     --dh-px:calc(880 * var(--u));
     --vshift:calc(max(0px, (100vh - var(--dh-px))) * .34)}
-  @supports (height:100dvh){
+  @supports (height:100svh){
     :root{
-      --u:max(min(.92px, calc(100dvh / 620)), min(calc(100vw / 430), calc(100dvh / 880)));
-      --vshift:calc(max(0px, (100dvh - var(--dh-px))) * .34)}
+      --u:max(min(.92px, calc(100svh / 620)), min(calc(100vw / 430), calc(100svh / 880)));
+      --vshift:calc(max(0px, (100svh - var(--dh-px))) * .34)}
   }
   .navbar{height:calc(76 * var(--u))}
   .navbar::after{left:calc(24 * var(--u)); right:calc(24 * var(--u)); top:calc(74 * var(--u))}
@@ -302,10 +302,182 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
   .rule span{transform:none}
   p.lede,.cta{opacity:1; transform:none}
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   SITE — everything below is additive; the hero rules above are unchanged
+   ════════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
+
+/* Nav gains a backing once the page has scrolled (class set by script). */
+.navbar::before{content:""; position:absolute; inset:0; z-index:-1; opacity:0;
+  background:linear-gradient(180deg, rgba(4,12,26,.86), rgba(4,12,26,.62));
+  -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  transition:opacity .3s ease}
+.navbar.is-stuck::before{opacity:1}
+
+/* ── BACKDROP + ORBIT PLANET ───────────────────────────────────────── */
+/* 100lvh so the layer never resizes when a mobile toolbar collapses; the
+   clip itself is held at 100svh so the hero frames exactly as before. */
+.backdrop{position:fixed; top:0; left:0; right:0; height:100vh; height:100lvh; z-index:0;
+  overflow:hidden; pointer-events:none;
+  background-color:#04101f;
+  background-image:
+    radial-gradient(1.2px 1.2px at 24px 36px, rgba(255,255,255,.75), transparent),
+    radial-gradient(1px 1px at 148px 92px, rgba(255,255,255,.55), transparent),
+    radial-gradient(1.6px 1.6px at 262px 178px, rgba(255,255,255,.8), transparent),
+    radial-gradient(1px 1px at 88px 228px, rgba(121,220,232,.7), transparent),
+    radial-gradient(1.2px 1.2px at 206px 286px, rgba(255,255,255,.5), transparent);
+  background-size:300px 300px}
+.backdrop .sky{bottom:auto; height:100%; height:100svh}
+
+/* Orbit sizing: start diameter, and where it ends up after the first screen. */
+:root{--orbit-w:72vmin; --orbit-x:40vw; --orbit-y:10vh; --orbit-s:.5}
+@media (max-width:1030px){ :root{--orbit-w:82vmin; --orbit-x:38vw; --orbit-y:14vh; --orbit-s:.56} }
+@media (max-width:579px){ :root{--orbit-w:96vw; --orbit-x:40vw; --orbit-y:16vh; --orbit-s:.62} }
+@media (max-height:620px) and (min-width:580px){ :root{--orbit-w:80vh; --orbit-x:38vw; --orbit-y:8vh; --orbit-s:.55} }
+
+.orbit{position:absolute; left:50%; top:50vh; top:50svh; width:var(--orbit-w); height:var(--orbit-w);
+  margin:calc(var(--orbit-w) / -2) 0 0 calc(var(--orbit-w) / -2); opacity:0;
+  will-change:transform, opacity}
+.orbit-spin{width:100%; height:100%; will-change:transform}
+.orbit img{display:none; width:100%; height:100%; object-fit:contain}
+.orbit img.is-shown{display:block}
+
+/* ── SCROLL-DRIVEN PLANET ──────────────────────────────────────────────
+   Progress comes from the page's scroll position, never from time, so
+   scrolling back up plays everything in reverse.
+   · .sky         fades out and eases forward over the first 80vh
+   · .orbit       fades in, shrinks by --orbit-s and drifts by --orbit-x/y
+                  over the first 100vh, then stays parked there
+   · .orbit-spin  rotates 220deg across the whole page
+   Native path: CSS scroll-driven animations (compositor-run, no JS).
+   Fallback (.sfx-js, set by script where unsupported): one rAF-throttled
+   handler writes --sky/--drift/--spin on .backdrop and the same maths
+   runs in calc(). Both paths are skipped under reduced motion. */
+@keyframes sky-out{ to{opacity:0; transform:scale(1.1)} }
+@keyframes orbit-drift{
+  0%{opacity:0; transform:none}
+  35%{opacity:1}
+  100%{opacity:1; transform:translate(var(--orbit-x), var(--orbit-y)) scale(var(--orbit-s))}
+}
+@keyframes orbit-spin{ to{transform:rotate(220deg)} }
+
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:scroll()){
+    .backdrop .sky{animation:sky-out linear both; animation-timeline:scroll(root);
+      animation-range:0 80vh}
+    .orbit{animation:orbit-drift linear both; animation-timeline:scroll(root);
+      animation-range:0 100vh}
+    .orbit-spin{animation:orbit-spin linear both; animation-timeline:scroll(root)}
+  }
+  .sfx-js .backdrop .sky{opacity:calc(1 - var(--sky, 0));
+    transform:scale(calc(1 + .1 * var(--sky, 0)))}
+  .sfx-js .orbit{opacity:min(1, calc(var(--drift, 0) / .35));
+    transform:translate(calc(var(--orbit-x) * var(--drift, 0)), calc(var(--orbit-y) * var(--drift, 0)))
+              scale(calc(1 + (var(--orbit-s) - 1) * var(--drift, 0)))}
+  .sfx-js .orbit-spin{transform:rotate(calc(220deg * var(--spin, 0)))}
+}
+
+/* ── SECTIONS ──────────────────────────────────────────────────────── */
+.site{position:relative; z-index:1}
+.section{padding:clamp(88px, 12vw, 148px) clamp(20px, 5vw, 64px) 0}
+.section:last-of-type{padding-bottom:clamp(88px, 12vw, 148px)}
+.wrap{max-width:1160px; margin:0 auto}
+.s-head{max-width:640px; margin-bottom:clamp(32px, 5vw, 56px);
+  text-shadow:0 1px 2px rgba(4,16,31,.6), 0 0 16px rgba(4,16,31,.55)}
+.s-eyebrow{font-weight:500; font-size:14px; letter-spacing:.32em; text-transform:uppercase; color:var(--cyan)}
+.s-title{font-family:var(--font-serif); font-weight:400; font-size:clamp(40px, 6.4vw, 76px);
+  line-height:1.05; letter-spacing:.01em; margin-top:14px}
+.s-rule{display:block; width:64px; height:4px; border-radius:2px; background:var(--cyan); margin-top:22px}
+.s-lede{margin-top:20px; font-size:clamp(16px, 1.5vw, 18.4px); line-height:1.65; color:rgba(255,255,255,.88)}
+
+.grid{display:grid; gap:clamp(16px, 2vw, 24px);
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr))}
+.card{position:relative; display:flex; flex-direction:column; background:rgba(9,21,42,.76);
+  border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:clamp(22px, 2.4vw, 30px);
+  box-shadow:0 18px 44px rgba(2,8,20,.35)}
+.card h3{font-family:var(--font-serif); font-weight:400; font-size:24px; line-height:1.2; letter-spacing:.04em}
+:where(.card) p{margin-top:10px; font-size:16px; line-height:1.6; color:rgba(255,255,255,.8)}
+.card .more{margin-top:auto; padding-top:18px; color:var(--cyan); font-weight:600; font-size:15px;
+  text-decoration:none; align-self:flex-start}
+.card .more:hover{text-decoration:underline; text-underline-offset:4px}
+.meta{font-size:13px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,255,255,.6)}
+
+.btn{display:inline-flex; align-items:center; justify-content:center; min-height:52px; padding:2px 28px 0;
+  border:0; border-radius:26px; font:700 16px/1 var(--font-body); color:var(--btn-ink); text-decoration:none;
+  cursor:pointer; background:linear-gradient(180deg,#ffffff 0%,#d6e8f8 4%,#d9ecfe 72%,#ffffff 100%);
+  box-shadow:0 8px 16px -8px rgba(255,255,255,.5), 0 0 22px rgba(255,255,255,.14),
+             inset 0 0 0 2px rgba(255,255,255,.9)}
+.btn-ghost{background:transparent; color:#fff; box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.4)}
+
+/* Planets */
+.planet-card .pic{width:132px; height:132px; margin:-4px 0 18px -6px}
+.planet-card .pic img{width:100%; height:100%; object-fit:contain; display:block}
+.facts{margin-top:16px; display:grid; gap:8px}
+.facts div{display:flex; justify-content:space-between; gap:12px; padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.08); font-size:15px}
+.facts dt{color:rgba(255,255,255,.62)}
+.facts dd{font-weight:600}
+
+/* Tuition */
+.price{font-family:var(--font-serif); font-size:46px; line-height:1; margin-top:16px}
+.price small{font-family:var(--font-body); font-size:15px; color:rgba(255,255,255,.6); margin-left:4px}
+.ticks{list-style:none; margin:18px 0 24px; display:grid; gap:10px; font-size:15.5px; color:rgba(255,255,255,.86)}
+.ticks li{position:relative; padding-left:24px; line-height:1.45}
+.ticks li::before{content:""; position:absolute; left:2px; top:.42em; width:10px; height:6px;
+  border-left:2px solid var(--cyan); border-bottom:2px solid var(--cyan); transform:rotate(-45deg)}
+.card.is-featured{border-color:rgba(121,220,232,.55); box-shadow:0 0 0 1px rgba(121,220,232,.25), 0 18px 44px rgba(2,8,20,.45)}
+.tag{position:absolute; top:-12px; left:clamp(22px, 2.4vw, 30px); padding:6px 12px 5px; border-radius:999px;
+  background:var(--cyan); color:var(--btn-ink); font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase}
+.card .btn{margin-top:auto; width:100%}
+
+/* Tutorials */
+.tut{flex-direction:row; align-items:flex-start; gap:18px}
+.tut .play{flex:none; width:48px; height:48px; border-radius:50%; display:grid; place-items:center;
+  background:rgba(121,220,232,.14); box-shadow:inset 0 0 0 1.5px rgba(121,220,232,.5)}
+.tut .play::before{content:""; margin-left:4px; border-left:13px solid var(--cyan);
+  border-top:8px solid transparent; border-bottom:8px solid transparent}
+.tut h3{font-size:21px}
+
+/* Blog */
+.post h3{margin-top:12px}
+
+/* Enroll */
+.enroll-grid{display:grid; gap:clamp(28px, 5vw, 64px); grid-template-columns:1fr;
+  align-items:start}
+@media (min-width:880px){ .enroll-grid{grid-template-columns:1fr 1.05fr} }
+.enroll-grid .s-head{margin-bottom:0}
+.form{display:grid; gap:16px}
+.field{display:grid; gap:8px}
+.field label{font-size:14px; font-weight:600; letter-spacing:.02em; color:rgba(255,255,255,.82)}
+.field input,.field select{width:100%; height:52px; padding:0 16px; border-radius:14px;
+  border:1px solid rgba(255,255,255,.16); background:rgba(4,12,26,.7); color:#fff;
+  font:400 16px var(--font-body); -webkit-appearance:none; appearance:none}
+.field select{background-image:linear-gradient(45deg, transparent 50%, #fff 50%), linear-gradient(135deg, #fff 50%, transparent 50%);
+  background-position:calc(100% - 22px) 50%, calc(100% - 16px) 50%; background-size:6px 6px; background-repeat:no-repeat;
+  padding-right:40px}
+.field select option{color:#071227}
+.field input::placeholder{color:rgba(255,255,255,.4)}
+.form .btn{margin-top:6px; width:100%}
+.form-note{font-size:14px; line-height:1.5; color:rgba(255,255,255,.6)}
+.form-status{font-size:15.5px; line-height:1.5; color:var(--cyan)}
+.form-status:empty{display:none}
+
+.footer{position:relative; z-index:1; padding:28px clamp(20px, 5vw, 64px) 36px;
+  border-top:1px solid rgba(255,255,255,.1); background:rgba(4,12,26,.72)}
+.footer .wrap{display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; justify-content:space-between;
+  font-size:14px; color:rgba(255,255,255,.6)}
+.footer .logo{font-size:18.4px}
+
+.card .more:focus-visible,.btn:focus-visible,.footer a:focus-visible{outline:2px solid var(--cyan); outline-offset:3px}
+.field input:focus-visible,.field select:focus-visible{outline:2px solid var(--cyan); outline-offset:1px; border-color:transparent}
 </style>
 </head>
 <body>
-<div class="stage">
+<!-- Fixed background: the hero clip plus the scroll-driven "orbit" planet.
+     Sections scroll over it; see SCROLL-DRIVEN PLANET in the CSS. -->
+<div class="backdrop" aria-hidden="true">
   <div class="sky">
     <video data-planet="earth" class="is-active" autoplay muted loop playsinline preload="auto"
       src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202422_3ffb4889-c520-432d-8458-038009eb40df.mp4"
@@ -320,17 +492,26 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
       poster="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_0ba6de7c-285d-43dc-b7ab-8c54c73707cb.png"
       aria-hidden="true"></video>
   </div>
+  <div class="orbit">
+    <div class="orbit-spin">
+      <img data-planet="earth" class="is-shown" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png">
+      <img data-planet="venus" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png">
+      <img data-planet="mars" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png">
+    </div>
+  </div>
+</div>
 
+<div class="stage" id="top">
   <div class="ui">
     <header class="navbar">
       <div class="navrow">
-        <a class="logo" href="#">space<i>edu</i></a>
+        <a class="logo" href="#top">space<i>edu</i></a>
         <nav class="links" id="site-nav">
-          <a href="#" aria-current="page">Planets</a>
-          <a href="#">Tution</a>
-          <a href="#">Tutorials</a>
-          <a href="#">Blog</a>
-          <a class="enroll" href="#">Enroll</a>
+          <a href="#planets" aria-current="page">Planets</a>
+          <a href="#tuition">Tuition</a>
+          <a href="#tutorials">Tutorials</a>
+          <a href="#blog">Blog</a>
+          <a class="enroll" href="#enroll">Enroll</a>
         </nav>
         <button class="burger" type="button" aria-label="Open navigation"
                 aria-expanded="false" aria-controls="site-nav">
@@ -357,7 +538,7 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
           <img data-planet="venus" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png">
           <img data-planet="mars" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png">
         </button>
-        <a href="#">GET STARTED</a>
+        <a href="#enroll">GET STARTED</a>
         <span class="label label-l"></span>
         <span class="label label-r"></span>
       </div>
@@ -371,6 +552,227 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
     </svg>
   </button>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SITE SECTIONS — all copy, prices, dates and links below are
+     PLACEHOLDER content. Search for "PLACEHOLDER" to find each block.
+     ═══════════════════════════════════════════════════════════════════ -->
+<main class="site">
+
+  <!-- PLANETS — PLACEHOLDER copy; the facts are real but trim to taste -->
+  <section class="section" id="planets" aria-labelledby="planets-title">
+    <div class="wrap">
+      <header class="s-head">
+        <p class="s-eyebrow">Planets</p>
+        <h2 class="s-title" id="planets-title">Three worlds to explore</h2>
+        <span class="s-rule"></span>
+        <p class="s-lede">Each course orbits one planet: its surface, its sky and what it can teach us about our own. Start with the one that pulls you in.</p>
+      </header>
+      <div class="grid">
+        <article class="card planet-card">
+          <div class="pic"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png" alt="" loading="lazy" decoding="async"></div>
+          <h3>EARTH</h3>
+          <p>Our home world: oceans, plate tectonics and the only atmosphere we know that supports life.</p>
+          <dl class="facts">
+            <div><dt>Distance from Sun</dt><dd>1.00 AU</dd></div>
+            <div><dt>Length of day</dt><dd>24 h</dd></div>
+            <div><dt>Moons</dt><dd>1</dd></div>
+          </dl>
+          <a class="more" href="#enroll">Join the Earth course &rarr;</a>
+        </article>
+        <article class="card planet-card">
+          <div class="pic"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png" alt="" loading="lazy" decoding="async"></div>
+          <h3>VENUS</h3>
+          <p>Earth&rsquo;s scorching twin, wrapped in sulphuric clouds and spinning backwards beneath them.</p>
+          <dl class="facts">
+            <div><dt>Distance from Sun</dt><dd>0.72 AU</dd></div>
+            <div><dt>Length of day</dt><dd>243 Earth days</dd></div>
+            <div><dt>Moons</dt><dd>0</dd></div>
+          </dl>
+          <a class="more" href="#enroll">Join the Venus course &rarr;</a>
+        </article>
+        <article class="card planet-card">
+          <div class="pic"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png" alt="" loading="lazy" decoding="async"></div>
+          <h3>MARS</h3>
+          <p>The rust-red frontier: ancient riverbeds, the tallest volcano in the solar system and our next destination.</p>
+          <dl class="facts">
+            <div><dt>Distance from Sun</dt><dd>1.52 AU</dd></div>
+            <div><dt>Length of day</dt><dd>24 h 37 min</dd></div>
+            <div><dt>Moons</dt><dd>2</dd></div>
+          </dl>
+          <a class="more" href="#enroll">Join the Mars course &rarr;</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- TUITION — PLACEHOLDER plans and prices -->
+  <section class="section" id="tuition" aria-labelledby="tuition-title">
+    <div class="wrap">
+      <header class="s-head">
+        <p class="s-eyebrow">Tuition</p>
+        <h2 class="s-title" id="tuition-title">Choose your flight plan</h2>
+        <span class="s-rule"></span>
+        <p class="s-lede">Simple monthly plans. Cancel anytime. Early Bird pricing applies for the first week of enrollment.</p>
+      </header>
+      <div class="grid">
+        <article class="card">
+          <h3>Explorer</h3>
+          <p class="price">$0<small>/ month</small></p>
+          <ul class="ticks">
+            <li>Intro lessons for every planet</li>
+            <li>Monthly live sky-watch</li>
+            <li>Community forum access</li>
+          </ul>
+          <a class="btn btn-ghost" href="#enroll">Start free</a>
+        </article>
+        <article class="card is-featured">
+          <span class="tag">Most popular</span>
+          <h3>Navigator</h3>
+          <p class="price">$29<small>/ month</small></p>
+          <ul class="ticks">
+            <li>Full course for one planet</li>
+            <li>Weekly tutorials and quizzes</li>
+            <li>Certificate of completion</li>
+          </ul>
+          <a class="btn" href="#enroll">Choose Navigator</a>
+        </article>
+        <article class="card">
+          <h3>Commander</h3>
+          <p class="price">$79<small>/ month</small></p>
+          <ul class="ticks">
+            <li>All three planet courses</li>
+            <li>1-on-1 mentor sessions</li>
+            <li>Mission project review</li>
+          </ul>
+          <a class="btn btn-ghost" href="#enroll">Choose Commander</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- TUTORIALS — PLACEHOLDER titles and links -->
+  <section class="section" id="tutorials" aria-labelledby="tutorials-title">
+    <div class="wrap">
+      <header class="s-head">
+        <p class="s-eyebrow">Tutorials</p>
+        <h2 class="s-title" id="tutorials-title">Learn at your own orbit</h2>
+        <span class="s-rule"></span>
+        <p class="s-lede">Short, focused video lessons you can finish on a coffee break.</p>
+      </header>
+      <div class="grid">
+        <article class="card tut">
+          <span class="play" aria-hidden="true"></span>
+          <div>
+            <p class="meta">Beginner &middot; 12 min</p>
+            <h3>Reading the night sky</h3>
+            <p>Find Venus and Mars with nothing but your eyes and a clear evening.</p>
+          </div>
+        </article>
+        <article class="card tut">
+          <span class="play" aria-hidden="true"></span>
+          <div>
+            <p class="meta">Beginner &middot; 15 min</p>
+            <h3>Why Venus is so hot</h3>
+            <p>A runaway greenhouse effect explained in five simple diagrams.</p>
+          </div>
+        </article>
+        <article class="card tut">
+          <span class="play" aria-hidden="true"></span>
+          <div>
+            <p class="meta">Intermediate &middot; 18 min</p>
+            <h3>Water on Mars</h3>
+            <p>What dry riverbeds and polar ice tell us about the planet&rsquo;s past.</p>
+          </div>
+        </article>
+        <article class="card tut">
+          <span class="play" aria-hidden="true"></span>
+          <div>
+            <p class="meta">Intermediate &middot; 20 min</p>
+            <h3>Earth&rsquo;s moving plates</h3>
+            <p>How continents drift, mountains rise and earthquakes happen.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOG — PLACEHOLDER posts, dates and links -->
+  <section class="section" id="blog" aria-labelledby="blog-title">
+    <div class="wrap">
+      <header class="s-head">
+        <p class="s-eyebrow">Blog</p>
+        <h2 class="s-title" id="blog-title">Notes from orbit</h2>
+        <span class="s-rule"></span>
+        <p class="s-lede">News, stories and stargazing tips from the SpaceEdu team.</p>
+      </header>
+      <div class="grid">
+        <article class="card post">
+          <p class="meta"><time datetime="2026-10-02">Oct 2, 2026</time></p>
+          <h3>5 things you didn&rsquo;t know about Venus</h3>
+          <p>A day there lasts longer than its year, and that&rsquo;s only the start.</p>
+          <a class="more" href="#">Read article &rarr;</a>
+        </article>
+        <article class="card post">
+          <p class="meta"><time datetime="2026-09-18">Sep 18, 2026</time></p>
+          <h3>Planning a Mars-watching night</h3>
+          <p>When to look, where to look and what gear you actually need.</p>
+          <a class="more" href="#">Read article &rarr;</a>
+        </article>
+        <article class="card post">
+          <p class="meta"><time datetime="2026-09-04">Sep 4, 2026</time></p>
+          <h3>Earth from above: our favourite photos</h3>
+          <p>Ten images from orbit that changed how we see our planet.</p>
+          <a class="more" href="#">Read article &rarr;</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ENROLL — PLACEHOLDER form: it does not send anywhere yet.
+       Point the <form action> at your backend and remove the demo handler in the script. -->
+  <section class="section" id="enroll" aria-labelledby="enroll-title">
+    <div class="wrap enroll-grid">
+      <header class="s-head">
+        <p class="s-eyebrow">Enroll</p>
+        <h2 class="s-title" id="enroll-title">Reserve your seat</h2>
+        <span class="s-rule"></span>
+        <p class="s-lede">Course enrollment starts today. Early Bird tickets typically last a week, so don&rsquo;t miss out!</p>
+      </header>
+      <div class="card">
+        <form class="form" id="enroll-form" action="#" novalidate>
+          <div class="field">
+            <label for="f-name">Your name</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" placeholder="Ada Lovelace" required>
+          </div>
+          <div class="field">
+            <label for="f-email">Email</label>
+            <input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com" required>
+          </div>
+          <div class="field">
+            <label for="f-course">Course</label>
+            <select id="f-course" name="course">
+              <option value="earth">Planet Earth</option>
+              <option value="venus">Planet Venus</option>
+              <option value="mars">Planet Mars</option>
+              <option value="all">All three (Commander)</option>
+            </select>
+          </div>
+          <button class="btn" type="submit">Reserve my seat</button>
+          <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          <p class="form-note">We&rsquo;ll email you the course details. No spam, ever.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <a class="logo" href="#top">space<i>edu</i></a>
+    <span>&copy; 2026 SpaceEdu. Placeholder content.</span>
+  </div>
+</footer>
 
 <script>
 (function () {
@@ -472,9 +874,16 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
     document.title = 'SpaceEdu — Planet ' + cap(d.name);
   }
 
+  function showOrbit(planet) {
+    Array.prototype.forEach.call(document.querySelectorAll('.orbit img'), function (img) {
+      img.classList.toggle('is-shown', img.getAttribute('data-planet') === planet);
+    });
+  }
+
   function feature(planet) {
     if (planet === featured) return;
     featured = planet;
+    showOrbit(planet);
     var token = ++switchToken;
     showVideo(planet, token);
 
@@ -540,12 +949,102 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
 
   // ── Scroll control ──
   document.querySelector('.scroll').addEventListener('click', function () {
-    var target = document.querySelector('.stage + *');
-    if (target && target.scrollIntoView) {
-      target.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
-    } else {
-      window.scrollBy({ top: window.innerHeight, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    document.getElementById('planets').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  });
+
+  // ── Scroll-driven planet: fallback for browsers without CSS scroll timelines ──
+  // Where `animation-timeline: scroll()` is supported the CSS does all the work
+  // and nothing here runs. Otherwise one passive listener schedules at most one
+  // rAF per frame, which writes three numbers onto .backdrop; calc() in the
+  // .sfx-js rules turns them into the same transforms as the keyframes.
+  var backdrop = document.querySelector('.backdrop');
+  var nativeTimeline = window.CSS && CSS.supports && CSS.supports('animation-timeline: scroll()');
+  if (!nativeTimeline) {
+    var root = document.documentElement;
+    var queued = false;
+    var clamp01 = function (n) { return n < 0 ? 0 : n > 1 ? 1 : n; };
+    var paint = function () {
+      queued = false;
+      var y = window.pageYOffset || root.scrollTop;
+      var vh = window.innerHeight;
+      var max = Math.max(1, root.scrollHeight - vh);
+      backdrop.style.setProperty('--sky', clamp01(y / (vh * 0.8)).toFixed(4));
+      backdrop.style.setProperty('--drift', clamp01(y / vh).toFixed(4));
+      backdrop.style.setProperty('--spin', clamp01(y / max).toFixed(4));
+    };
+    var queue = function () { if (!queued) { queued = true; requestAnimationFrame(paint); } };
+    var syncFallback = function () {
+      var on = !reduceMotion.matches;
+      root.classList.toggle('sfx-js', on);
+      window.removeEventListener('scroll', queue);
+      window.removeEventListener('resize', queue);
+      if (on) {
+        window.addEventListener('scroll', queue, { passive: true });
+        window.addEventListener('resize', queue, { passive: true });
+        queue();
+      }
+    };
+    syncFallback();
+    if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', syncFallback);
+    else if (reduceMotion.addListener) reduceMotion.addListener(syncFallback);
+  }
+
+  if ('IntersectionObserver' in window) {
+    // Nav backing appears once the hero's top edge has scrolled under the nav.
+    var navbar = document.querySelector('.navbar');
+    var stage = document.querySelector('.stage');
+    var sentinel = document.createElement('div');
+    sentinel.setAttribute('aria-hidden', 'true');
+    sentinel.style.cssText = 'position:absolute;top:0;left:0;width:1px;height:24px;pointer-events:none';
+    stage.appendChild(sentinel);
+    new IntersectionObserver(function (entries) {
+      navbar.classList.toggle('is-stuck', !entries[0].isIntersecting);
+    }).observe(sentinel);
+
+    // Pause the clip while it's scrolled out of sight (it has faded by then).
+    new IntersectionObserver(function (entries) {
+      var v = videos[featured];
+      if (reduceMotion.matches || !v.getAttribute('src')) return;
+      if (entries[0].isIntersecting) {
+        var pr = v.play();
+        if (pr && pr.catch) pr.catch(function () {});
+      } else {
+        v.pause();
+      }
+    }, { threshold: 0.05 }).observe(stage);
+
+    // Underline the nav link for the section in the middle of the screen.
+    // The hero counts as Planets, matching the original design.
+    var navLinks = Array.prototype.slice.call(nav.querySelectorAll('a'));
+    var markCurrent = function (id) {
+      navLinks.forEach(function (a) {
+        if (a.getAttribute('href') === '#' + id && !a.classList.contains('enroll')) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      });
+    };
+    var spy = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) markCurrent(e.target.id === 'top' ? 'planets' : e.target.id);
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    spy.observe(stage);
+    Array.prototype.forEach.call(document.querySelectorAll('.site .section'), function (sec) { spy.observe(sec); });
+  }
+
+  // ── Enroll form (PLACEHOLDER: no backend yet — swap this for a real submit) ──
+  var form = document.getElementById('enroll-form');
+  var formStatus = document.getElementById('form-status');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = form.elements.name.value.trim();
+    var email = form.elements.email.value.trim();
+    if (!name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      formStatus.textContent = 'Please add your name and a valid email address.';
+      (name ? form.elements.email : form.elements.name).focus();
+      return;
     }
+    formStatus.textContent = 'Thanks, ' + name + '! Your seat is reserved. Check ' + email + ' for the details.';
+    form.reset();
   });
 
   // ── Boot ──
