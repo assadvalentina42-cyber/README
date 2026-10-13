@@ -316,7 +316,7 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
   transition:opacity .3s ease}
 .navbar.is-stuck::before{opacity:1}
 
-/* ── BACKDROP + ORBIT PLANET ───────────────────────────────────────── */
+/* ── BACKDROP ──────────────────────────────────────────────────────── */
 /* 100lvh so the layer never resizes when a mobile toolbar collapses; the
    clip itself is held at 100svh so the hero frames exactly as before. */
 .backdrop{position:fixed; top:0; left:0; right:0; height:100vh; height:100lvh; z-index:0;
@@ -339,51 +339,18 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
     radial-gradient(1.5px 1.5px at 330px 320px, rgba(255,255,255,.75), transparent),
     radial-gradient(1.3px 1.3px at 96px 352px, rgba(255,255,255,.7), transparent)}
 
-/* Orbit sizing: the planet's diameter at the top of the page. */
-:root{--orbit-w:72vmin}
-@media (max-width:1030px){ :root{--orbit-w:82vmin} }
-@media (max-width:579px){ :root{--orbit-w:96vw} }
-@media (max-height:620px) and (min-width:580px){ :root{--orbit-w:80vh} }
-
-.orbit{position:absolute; left:50%; top:50vh; top:50svh; width:var(--orbit-w); height:var(--orbit-w);
-  margin:calc(var(--orbit-w) / -2) 0 0 calc(var(--orbit-w) / -2); opacity:0;
-  will-change:opacity}
-.orbit-zoom{position:relative; width:100%; height:100%; will-change:transform, opacity}
-/* Soft halo so the planet's outline still reads through the section cards. */
-.orbit-zoom::before{content:""; position:absolute; inset:-14%; z-index:-1; border-radius:50%;
-  background:radial-gradient(closest-side, rgba(170,215,255,.22), rgba(170,215,255,.08) 62%, transparent)}
-.orbit img{display:none; width:100%; height:100%; object-fit:contain}
-.orbit img.is-shown{display:block}
-
-/* ── SCROLL-DRIVEN "CAMERA PULLING AWAY" ───────────────────────────────
-   Progress comes from the page's scroll position, never from time, so
-   scrolling back up plays everything in reverse.
-   · .sky         the hero clip fades out and recedes slightly (first 70vh)
-   · .orbit       the planet cut-out fades in over the clip (first 45vh)
-   · .orbit-zoom  across the whole page the planet shrinks as if the
-                  camera were moving away at a steady speed:
-                  scale = 1 / (1 + 6p), so it ends at about 1/7 size.
-                  It also rises 6vh and fades to 90% opacity.
-   · .stars-*     across the whole page the stars drift and shrink far
-                  less than the planet (near layer more than far layer),
-                  which is the parallax that sells the distance.
+/* ── SCROLL-DRIVEN BACKDROP ────────────────────────────────────────────
+   Progress comes from the page's scroll position, never from time.
+   · .sky      the hero clip fades out and recedes slightly (first 70vh)
+   · .stars-*  across the whole page the two star layers drift and shrink
+               by different amounts (near more than far): gentle parallax
+               wherever the backdrop shows through.
    Native path: CSS scroll-driven animations (compositor-run, no JS).
    Fallback (.sfx-js, set by script where unsupported): one rAF-throttled
-   handler writes --sky/--fade/--zoom on .backdrop and the same maths
-   runs in calc(). Both paths are skipped under reduced motion. */
+   handler writes --sky/--zoom on .backdrop and the same maths runs in
+   calc(). Both paths are skipped under reduced motion.
+   The Powers of Ten zoom has its own engine; see ZOOM below. */
 @keyframes sky-out{ to{opacity:0; transform:scale(.96)} }
-@keyframes orbit-in{ to{opacity:1} }
-/* Stops sample 1/(1+6p), -6p vh and 1-.1p so the curve stays smooth. */
-@keyframes orbit-zoom{
-  0%  {opacity:1;     transform:translateY(0)       scale(1)}
-  5%  {opacity:.995;  transform:translateY(-.3vh)   scale(.7692)}
-  10% {opacity:.99;   transform:translateY(-.6vh)   scale(.625)}
-  20% {opacity:.98;   transform:translateY(-1.2vh)  scale(.4545)}
-  35% {opacity:.965;  transform:translateY(-2.1vh)  scale(.3226)}
-  50% {opacity:.95;   transform:translateY(-3vh)    scale(.25)}
-  70% {opacity:.93;   transform:translateY(-4.2vh)  scale(.1923)}
-  100%{opacity:.9;    transform:translateY(-6vh)    scale(.1429)}
-}
 @keyframes stars-far{ to{transform:translateY(-6vh) scale(.94)} }
 @keyframes stars-near{ to{transform:translateY(-16vh) scale(.84)} }
 
@@ -391,20 +358,79 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
   @supports (animation-timeline:scroll()){
     .backdrop .sky{animation:sky-out linear both; animation-timeline:scroll(root);
       animation-range:0 70vh}
-    .orbit{animation:orbit-in linear both; animation-timeline:scroll(root);
-      animation-range:0 45vh}
-    .orbit-zoom{animation:orbit-zoom linear both; animation-timeline:scroll(root)}
     .stars-far{animation:stars-far linear both; animation-timeline:scroll(root)}
     .stars-near{animation:stars-near linear both; animation-timeline:scroll(root)}
   }
   .sfx-js .backdrop .sky{opacity:calc(1 - var(--sky, 0));
     transform:scale(calc(1 - .04 * var(--sky, 0)))}
-  .sfx-js .orbit{opacity:var(--fade, 0)}
-  .sfx-js .orbit-zoom{opacity:calc(1 - .1 * var(--zoom, 0));
-    transform:translateY(calc(-6vh * var(--zoom, 0))) scale(calc(1 / (1 + 6 * var(--zoom, 0))))}
   .sfx-js .stars-far{transform:translateY(calc(-6vh * var(--zoom, 0))) scale(calc(1 - .06 * var(--zoom, 0)))}
   .sfx-js .stars-near{transform:translateY(calc(-16vh * var(--zoom, 0))) scale(calc(1 - .16 * var(--zoom, 0)))}
 }
+
+/* ── ZOOM: POWERS OF TEN ───────────────────────────────────────────────
+   A tall section whose child sticks to the viewport while you scroll
+   through it. Seven stacked layers (one per image) are driven by the
+   script's keyframes, tied to how far you are through the section.
+   Without script or under reduced motion (no .zoom-on) it is a simple
+   gallery of the seven images with their captions. */
+.zoom{position:relative; z-index:1}
+.zoom-on .zoom{height:640vh; height:640svh}
+.zoom-pin{padding:clamp(88px, 12vw, 148px) clamp(20px, 5vw, 64px) 0}
+.zoom-on .zoom-pin{position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; padding:0}
+
+/* Frame = one image's box (940 x 1672). Phones: it covers the screen.
+   Wider screens: a portrait "viewer" beside the captions. */
+.zoom-on .zoom-frame{--fw:max(100vw, calc(100svh * 940 / 1672)); --fh:calc(var(--fw) * 1672 / 940);
+  position:absolute; left:calc(50% - var(--fw) / 2); top:calc(50% - var(--fh) / 2);
+  width:var(--fw); height:var(--fh); overflow:hidden; background:#04101f; z-index:0}
+@media (min-aspect-ratio:4/5){
+  .zoom-on .zoom-frame{--fh:calc(100svh - 132px); --fw:calc(var(--fh) * 940 / 1672);
+    left:calc(100% - max(24px, 7vw) - var(--fw)); top:104px; border-radius:24px;
+    border:1px solid rgba(255,255,255,.14); box-shadow:0 30px 80px rgba(2,8,20,.6)}
+}
+.zoom-on .zl{position:absolute; inset:0; margin:0; visibility:hidden; will-change:transform, opacity;
+  /* Feathered edges, so a shrinking image melts into the next one instead
+     of showing as a hard rectangle. At full size the feather sits under
+     the nav, the caption scrim or off-screen. */
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent),
+                     linear-gradient(180deg, transparent, #000 4%, #000 96%, transparent);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent),
+             linear-gradient(180deg, transparent, #000 4%, #000 96%, transparent);
+  mask-composite:intersect}
+.zoom-on .zl:first-child{visibility:visible}
+/* The inner (closer) image always sits above the outer one. */
+.zl:nth-child(1){z-index:7} .zl:nth-child(2){z-index:6} .zl:nth-child(3){z-index:5}
+.zl:nth-child(4){z-index:4} .zl:nth-child(5){z-index:3} .zl:nth-child(6){z-index:2} .zl:nth-child(7){z-index:1}
+.zl img{display:block; width:100%; height:100%; object-fit:cover}
+.zoom-on .zl figcaption{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
+
+.zoom-on .zoom-caps{display:block; position:absolute; z-index:2; left:max(20px, 7vw); right:20px; bottom:max(28px, 5svh);
+  pointer-events:none; text-shadow:0 2px 18px rgba(4,16,31,.7)}
+.zoom-on .zoom-pin::after{content:""; position:absolute; inset:auto 0 0; height:42%; z-index:1; pointer-events:none;
+  background:linear-gradient(180deg, transparent, rgba(4,12,26,.82))}
+@media (min-aspect-ratio:4/5){
+  .zoom-on .zoom-caps{bottom:auto; top:50%; right:auto; width:min(34vw, 440px); transform:translateY(-50%)}
+  .zoom-on .zoom-pin::after{content:none}
+}
+.zoom sup{font-size:.6em; line-height:0}
+.zoom-eyebrow{font-weight:500; font-size:14px; letter-spacing:.32em; text-transform:uppercase; color:var(--cyan)}
+.zoom-list{position:relative; height:clamp(96px, 14svh, 140px); margin:12px 0 0; padding:0; list-style:none}
+.zc{position:absolute; inset:0 0 auto; opacity:0; will-change:transform, opacity}
+.zc:first-child{opacity:1}
+.zc-scale{display:block; font-size:15px; font-weight:600; letter-spacing:.08em; color:rgba(255,255,255,.72)}
+.zc-name{display:block; margin-top:6px; font-family:var(--font-serif); font-weight:400;
+  font-size:clamp(38px, 5.4vw, 64px); line-height:1.04}
+
+/* Gallery fallback (no script / reduced motion). */
+html:not(.zoom-on) .zoom-pin{display:flex; flex-direction:column}
+html:not(.zoom-on) .zoom-caps{order:-1; width:100%; max-width:1160px; margin:0 auto clamp(32px, 5vw, 56px)}
+html:not(.zoom-on) .zoom-list{display:none}
+html:not(.zoom-on) .zoom-frame{display:grid; gap:clamp(16px, 2vw, 24px); width:100%; min-width:0; max-width:1160px; margin:0 auto;
+  grid-template-columns:repeat(auto-fit, minmax(min(100%, 220px), 1fr))}
+html:not(.zoom-on) .zl{margin:0}
+html:not(.zoom-on) .zl img{height:auto; aspect-ratio:940 / 1672; border-radius:16px}
+html:not(.zoom-on) .zl figcaption{margin-top:10px; font-family:var(--font-serif); font-size:20px}
 
 /* ── SECTIONS ──────────────────────────────────────────────────────── */
 .site{position:relative; z-index:1}
@@ -502,9 +528,8 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
 </style>
 </head>
 <body>
-<!-- Fixed background: two parallax star layers, the hero clip and the
-     scroll-driven "orbit" planet. Sections scroll over it; see
-     SCROLL-DRIVEN "CAMERA PULLING AWAY" in the CSS. -->
+<!-- Fixed background: two parallax star layers and the hero clip.
+     Sections scroll over it; see SCROLL-DRIVEN BACKDROP in the CSS. -->
 <div class="backdrop" aria-hidden="true">
   <div class="stars stars-far"></div>
   <div class="stars stars-near"></div>
@@ -521,13 +546,6 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
       data-src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202422_51eae59a-2459-4c84-907c-cc5edfe5fea7.mp4"
       poster="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_0ba6de7c-285d-43dc-b7ab-8c54c73707cb.png"
       aria-hidden="true"></video>
-  </div>
-  <div class="orbit">
-    <div class="orbit-zoom">
-      <img data-planet="earth" class="is-shown" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png">
-      <img data-planet="venus" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png">
-      <img data-planet="mars" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png">
-    </div>
   </div>
 </div>
 
@@ -589,6 +607,56 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
      ═══════════════════════════════════════════════════════════════════ -->
 <main class="site">
 
+  <!-- POWERS OF TEN — scroll-driven zoom from one person to the solar system.
+       Images live in images/zoom-1.jpg … zoom-7.jpg; where each one sits
+       inside the next is set in ZOOM_STEPS in the script. -->
+  <section class="zoom" id="zoom" aria-labelledby="zoom-title">
+    <div class="zoom-pin">
+      <div class="zoom-frame">
+        <figure class="zl">
+          <img src="images/zoom-1.jpg" alt="A student in a red jacket standing on a tree-lined street at sunset" width="940" height="1672" loading="lazy" decoding="async">
+          <figcaption>You &middot; about 10<sup>0</sup> m</figcaption>
+        </figure>
+        <figure class="zl">
+          <img src="images/zoom-2.jpg" alt="The same street seen from a drone straight above, the student a small red figure in the middle" width="940" height="1672" loading="lazy" decoding="async">
+          <figcaption>Your street &middot; about 10<sup>2</sup> m</figcaption>
+        </figure>
+        <figure class="zl">
+          <img src="images/zoom-3.jpg" alt="The whole neighbourhood from above: rows of red-roofed houses either side of the central street" width="940" height="1672" loading="lazy" decoding="async">
+          <figcaption>Your neighbourhood &middot; about 10<sup>3</sup> m</figcaption>
+        </figure>
+        <figure class="zl">
+          <img src="images/zoom-4.jpg" alt="The city from a satellite: suburbs, fields, motorways and a river" width="940" height="1672" loading="lazy" decoding="async">
+          <figcaption>Your city &middot; about 10<sup>4</sup> m</figcaption>
+        </figure>
+        <figure class="zl">
+          <img src="images/zoom-5.jpg" alt="The whole Earth from space, with South America facing us" width="940" height="1672" loading="lazy" decoding="async">
+          <figcaption>Planet Earth &middot; about 10<sup>7</sup> m</figcaption>
+        </figure>
+        <figure class="zl">
+          <img src="images/zoom-6.jpg" alt="Earth and the Moon, small against the dark, with the Sun's glare at the edge" width="940" height="1672" loading="lazy" decoding="async">
+          <figcaption>Earth and Moon &middot; about 10<sup>9</sup> m</figcaption>
+        </figure>
+        <figure class="zl">
+          <img src="images/zoom-7.jpg" alt="The solar system: the Sun and the planets lined up along their orbits" width="940" height="1672" loading="lazy" decoding="async">
+          <figcaption>The solar system &middot; about 10<sup>13</sup> m</figcaption>
+        </figure>
+      </div>
+      <div class="zoom-caps">
+        <h2 class="zoom-eyebrow" id="zoom-title">Powers of ten</h2>
+        <ol class="zoom-list" aria-hidden="true">
+          <li class="zc"><span class="zc-scale">10<sup>0</sup> m</span><span class="zc-name">You</span></li>
+          <li class="zc"><span class="zc-scale">10<sup>2</sup> m</span><span class="zc-name">Your street</span></li>
+          <li class="zc"><span class="zc-scale">10<sup>3</sup> m</span><span class="zc-name">Your neighbourhood</span></li>
+          <li class="zc"><span class="zc-scale">10<sup>4</sup> m</span><span class="zc-name">Your city</span></li>
+          <li class="zc"><span class="zc-scale">10<sup>7</sup> m</span><span class="zc-name">Planet Earth</span></li>
+          <li class="zc"><span class="zc-scale">10<sup>9</sup> m</span><span class="zc-name">Earth and Moon</span></li>
+          <li class="zc"><span class="zc-scale">10<sup>13</sup> m</span><span class="zc-name">The solar system</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
   <!-- PLANETS — PLACEHOLDER copy; the facts are real but trim to taste -->
   <section class="section" id="planets" aria-labelledby="planets-title">
     <div class="wrap">
@@ -600,6 +668,7 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
       </header>
       <div class="grid">
         <article class="card planet-card">
+          <!-- PLACEHOLDER image: swap for a NASA photo of this planet -->
           <div class="pic"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png" alt="" loading="lazy" decoding="async"></div>
           <h3>EARTH</h3>
           <p>Our home world: oceans, plate tectonics and the only atmosphere we know that supports life.</p>
@@ -611,6 +680,7 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
           <a class="more" href="#enroll">Join the Earth course &rarr;</a>
         </article>
         <article class="card planet-card">
+          <!-- PLACEHOLDER image: swap for a NASA photo of this planet -->
           <div class="pic"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png" alt="" loading="lazy" decoding="async"></div>
           <h3>VENUS</h3>
           <p>Earth&rsquo;s scorching twin, wrapped in sulphuric clouds and spinning backwards beneath them.</p>
@@ -622,6 +692,7 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
           <a class="more" href="#enroll">Join the Venus course &rarr;</a>
         </article>
         <article class="card planet-card">
+          <!-- PLACEHOLDER image: swap for a NASA photo of this planet -->
           <div class="pic"><img src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png" alt="" loading="lazy" decoding="async"></div>
           <h3>MARS</h3>
           <p>The rust-red frontier: ancient riverbeds, the tallest volcano in the solar system and our next destination.</p>
@@ -904,16 +975,9 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
     document.title = 'SpaceEdu — Planet ' + cap(d.name);
   }
 
-  function showOrbit(planet) {
-    Array.prototype.forEach.call(document.querySelectorAll('.orbit img'), function (img) {
-      img.classList.toggle('is-shown', img.getAttribute('data-planet') === planet);
-    });
-  }
-
   function feature(planet) {
     if (planet === featured) return;
     featured = planet;
-    showOrbit(planet);
     var token = ++switchToken;
     showVideo(planet, token);
 
@@ -979,7 +1043,7 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
 
   // ── Scroll control ──
   document.querySelector('.scroll').addEventListener('click', function () {
-    document.getElementById('planets').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    document.getElementById('zoom').scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
   });
 
   // ── Scroll-driven planet: fallback for browsers without CSS scroll timelines ──
@@ -999,7 +1063,6 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
       var vh = window.innerHeight;
       var max = Math.max(1, root.scrollHeight - vh);
       backdrop.style.setProperty('--sky', clamp01(y / (vh * 0.7)).toFixed(4));
-      backdrop.style.setProperty('--fade', clamp01(y / (vh * 0.45)).toFixed(4));
       backdrop.style.setProperty('--zoom', clamp01(y / max).toFixed(4));
     };
     var queue = function () { if (!queued) { queued = true; requestAnimationFrame(paint); } };
@@ -1017,6 +1080,167 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
     syncFallback();
     if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', syncFallback);
     else if (reduceMotion.addListener) reduceMotion.addListener(syncFallback);
+  }
+
+  // ── Powers of Ten zoom ──
+  // Each step zooms out from one image to the next. ZOOM_STEPS[j] says where
+  // image j+1 sits inside image j+2: T is that point as a fraction of the
+  // 940x1672 frame, F how many times larger image j+2's view is. Both were
+  // measured from the photos (e.g. the street is ~370px wide in image 2 and
+  // ~80px in image 3, so F = 4.6). Step 1->2 is a crossfade instead, since
+  // the camera turns from eye level to straight down.
+  var ZOOM_PERSON = [0.5043, 0.4755];            // the student in image 2
+  var ZOOM_STEPS = [
+    null,                                        // 1 -> 2: crossfade
+    { F: 4.6, T: [0.5053, 0.5646] },             // 2 in 3: red dot on the central street
+    { F: 7,   T: [0.5000, 0.5500] },             // 3 in 4: residential area near the centre
+    { F: 10,  T: [0.5085, 0.5850] },             // 4 in 5: Argentina
+    { F: 9.6, T: [0.5021, 0.4952] },             // 5 in 6: the Earth
+    { F: 3.2, T: [0.4266, 0.4922] }              // 6 in 7: the Earth beside the Sun
+  ];
+  var zoomEl = document.getElementById('zoom');
+  var zoomLayers = Array.prototype.slice.call(zoomEl.querySelectorAll('.zl'));
+  var zoomCaps = Array.prototype.slice.call(zoomEl.querySelectorAll('.zc'));
+  // Scroll is measured in "units": a short hold on image 1, then each step
+  // takes 1 unit with a pause of 0.35 between steps, and a hold on image 7.
+  var Z_LEAD = 0.4, Z_STEP = 1, Z_PAUSE = 0.35, Z_TAIL = 0.6;
+  var Z_TOTAL = Z_LEAD + ZOOM_STEPS.length * Z_STEP + (ZOOM_STEPS.length - 1) * Z_PAUSE + Z_TAIL;
+  var zoomAnims = [];
+  var zoomScrollHandler = null;
+
+  function smooth(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
+  function stepStart(j) { return Z_LEAD + j * (Z_STEP + Z_PAUSE); }
+
+  // Where we are at scroll unit u: the step in progress (or -1) and how far
+  // through it (eased), plus how many steps are already finished.
+  function zoomPhase(u) {
+    for (var j = 0; j < ZOOM_STEPS.length; j++) {
+      var a = stepStart(j);
+      if (u < a) return { j: -1, t: 0, done: j };
+      if (u <= a + Z_STEP) return { j: j, t: smooth(0, 1, (u - a) / Z_STEP), done: j };
+    }
+    return { j: -1, t: 0, done: ZOOM_STEPS.length };
+  }
+
+  function xf(tx, ty, sc) {
+    return 'translate(' + (tx * 100).toFixed(3) + '%, ' + (ty * 100).toFixed(3) + '%) scale(' + sc.toFixed(5) + ')';
+  }
+
+  // State of image i at scroll unit u. Maths for step j (inner image j,
+  // outer image j+1, target T with o = T - centre): the zoom z = F^(1-t)
+  // shrinks steadily from F to 1. The outer image is scaled by z about its
+  // centre and shifted so T sits at o*t on screen (screen centre at t=0,
+  // its natural place at t=1). The inner image sits exactly on T at size
+  // z/F, so it lines up with its own spot in the outer image, and fades
+  // out late in the step to hand over to the outer image's detail.
+  function layerState(i, u) {
+    var ph = zoomPhase(u), j = ph.j, t = ph.t;
+    if (j < 0) return { tr: xf(0, 0, 1), op: i === ph.done ? 1 : 0, vis: i === ph.done };
+    if (j === 0) {
+      if (i === 0) return { tr: xf(0, 0, 1 + 0.06 * t), op: 1 - smooth(0.1, 0.9, t), vis: true };
+      if (i === 1) {
+        var s = 1.12 - 0.12 * t, ox = ZOOM_PERSON[0] - 0.5, oy = ZOOM_PERSON[1] - 0.5;
+        return { tr: xf(ox * (1 - s), oy * (1 - s), s), op: 1, vis: true };
+      }
+    } else {
+      var st = ZOOM_STEPS[j], z = Math.pow(st.F, 1 - t), px = st.T[0] - 0.5, py = st.T[1] - 0.5;
+      if (i === j) return { tr: xf(px * t, py * t, z / st.F), op: 1 - smooth(0.3, 0.75, t), vis: true };
+      if (i === j + 1) return { tr: xf(px * (t - z), py * (t - z), z), op: 1, vis: true };
+    }
+    return { tr: xf(0, 0, 1), op: 0, vis: false };
+  }
+
+  function zoomFocus(u) { var ph = zoomPhase(u); return ph.j < 0 ? ph.done : ph.j + ph.t; }
+
+  // Sample positions: every step boundary plus 16 points inside each step,
+  // enough for linear interpolation to follow the exponential zoom.
+  function zoomSamples() {
+    var us = [0];
+    for (var j = 0; j < ZOOM_STEPS.length; j++) {
+      var a = stepStart(j);
+      for (var k = 0; k <= 16; k++) us.push(a + Z_STEP * k / 16);
+    }
+    us.push(Z_TOTAL);
+    return us.filter(function (u, n) { return n === 0 || u > us[n - 1]; });
+  }
+
+  function buildZoom() {
+    var us = zoomSamples();
+    var timing;
+    if (typeof ViewTimeline === 'function') {
+      timing = { timeline: new ViewTimeline({ subject: zoomEl }), rangeStart: 'contain 0%', rangeEnd: 'contain 100%', fill: 'both', easing: 'linear' };
+    } else {
+      timing = { duration: 1000, fill: 'both', easing: 'linear' };
+    }
+    zoomLayers.forEach(function (el, i) {
+      var motion = [], vis = [];
+      us.forEach(function (u) {
+        var st = layerState(i, u), off = u / Z_TOTAL;
+        motion.push({ offset: off, transform: st.tr, opacity: st.op });
+        vis.push({ offset: off, visibility: st.vis ? 'visible' : 'hidden' });
+      });
+      zoomAnims.push(el.animate(motion, timing), el.animate(vis, timing));
+    });
+    zoomCaps.forEach(function (el, i) {
+      zoomAnims.push(el.animate(us.map(function (u) {
+        var d = zoomFocus(u) - i;
+        return { offset: u / Z_TOTAL, opacity: Math.max(0, 1 - Math.abs(d) * 2.2),
+                 transform: 'translateY(' + (-d * 18).toFixed(2) + 'px)' };
+      }), timing));
+    });
+    if (!timing.timeline) {
+      // No scroll timelines: drive the same animations from scroll position,
+      // at most once per frame.
+      zoomAnims.forEach(function (a) { a.pause(); });
+      var queued = false;
+      var paint = function () {
+        queued = false;
+        var r = zoomEl.getBoundingClientRect();
+        var span = Math.max(1, r.height - window.innerHeight);
+        var prog = Math.min(1, Math.max(0, -r.top / span));
+        zoomAnims.forEach(function (a) { a.currentTime = prog * 1000; });
+      };
+      zoomScrollHandler = function () { if (!queued) { queued = true; requestAnimationFrame(paint); } };
+      window.addEventListener('scroll', zoomScrollHandler, { passive: true });
+      window.addEventListener('resize', zoomScrollHandler, { passive: true });
+      paint();
+    }
+  }
+
+  function teardownZoom() {
+    zoomAnims.forEach(function (a) { a.cancel(); });
+    zoomAnims = [];
+    if (zoomScrollHandler) {
+      window.removeEventListener('scroll', zoomScrollHandler);
+      window.removeEventListener('resize', zoomScrollHandler);
+      zoomScrollHandler = null;
+    }
+  }
+
+  // Animated zoom unless reduced motion is on; then (or without script
+  // support for element.animate) the section is a plain gallery.
+  var syncZoom = function () {
+    teardownZoom();
+    var on = !reduceMotion.matches && typeof zoomEl.animate === 'function';
+    document.documentElement.classList.toggle('zoom-on', on);
+    if (on) buildZoom();
+  };
+  syncZoom();
+  if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', syncZoom);
+  else if (reduceMotion.addListener) reduceMotion.addListener(syncZoom);
+
+  // Decode the zoom images shortly before the section arrives, so no step
+  // stalls on a 940x1672 decode mid-scroll.
+  if ('IntersectionObserver' in window) {
+    var warmZoom = new IntersectionObserver(function (entries) {
+      if (!entries[0].isIntersecting) return;
+      warmZoom.disconnect();
+      zoomEl.querySelectorAll('img').forEach(function (img) {
+        img.loading = 'eager';
+        if (img.decode) img.decode().catch(function () {});
+      });
+    }, { rootMargin: '150% 0px' });
+    warmZoom.observe(zoomEl);
   }
 
   if ('IntersectionObserver' in window) {
