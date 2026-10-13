@@ -374,7 +374,8 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
    Without script or under reduced motion (no .zoom-on) it is a simple
    gallery of the seven images with their captions. */
 .zoom{position:relative; z-index:1}
-.zoom-on .zoom{height:640vh; height:640svh}
+/* Height is set by the script from the length of the camera move. */
+.zoom-on .zoom{height:1100vh; height:1100svh}
 .zoom-pin{padding:clamp(88px, 12vw, 148px) clamp(20px, 5vw, 64px) 0}
 .zoom-on .zoom-pin{position:sticky; top:0; height:100vh; height:100svh; overflow:hidden; padding:0}
 
@@ -413,6 +414,11 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
   mask-image:radial-gradient(ellipse 46% 25.85% at 49.71% 49.29%, #000 95%, transparent 100%)}
 .zl-globe img{display:block; width:100%; height:100%; object-fit:cover}
 .zl img{display:block; width:100%; height:100%; object-fit:cover}
+/* Pre-rendered radial zoom-blur twin of each image. The script fades it in
+   with the camera's speed (opacity only), so the blur appears in the fast
+   part of the move and clears as it slows. */
+.zl .zl-blur{display:none}
+.zoom-on .zl .zl-blur{display:block; position:absolute; inset:0; opacity:0; visibility:hidden; will-change:opacity}
 .zoom-on .zl figcaption{position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap}
 
 .zoom-on .zoom-caps{display:block; position:absolute; z-index:2; left:max(20px, 7vw); right:20px; bottom:max(28px, 5svh);
@@ -629,18 +635,22 @@ html:not(.zoom-on) .zl figcaption{margin-top:10px; font-family:var(--font-serif)
         </figure>
         <figure class="zl">
           <img src="images/zoom-2.jpg" alt="The same street seen from a drone straight above, the student a small red figure in the middle" width="940" height="1672" loading="lazy" decoding="async">
+          <img class="zl-blur" src="images/zoom-2-blur.jpg" alt="" width="940" height="1672" loading="lazy" decoding="async">
           <figcaption>Your street &middot; about 10<sup>2</sup> m</figcaption>
         </figure>
         <figure class="zl">
           <img src="images/zoom-3.jpg" alt="The whole neighbourhood from above: rows of red-roofed houses either side of the central street" width="940" height="1672" loading="lazy" decoding="async">
+          <img class="zl-blur" src="images/zoom-3-blur.jpg" alt="" width="940" height="1672" loading="lazy" decoding="async">
           <figcaption>Your neighbourhood &middot; about 10<sup>3</sup> m</figcaption>
         </figure>
         <figure class="zl">
           <img src="images/zoom-4.jpg" alt="The city from a satellite: suburbs, fields, motorways and a river" width="940" height="1672" loading="lazy" decoding="async">
+          <img class="zl-blur" src="images/zoom-4-blur.jpg" alt="" width="940" height="1672" loading="lazy" decoding="async">
           <figcaption>Your city &middot; about 10<sup>4</sup> m</figcaption>
         </figure>
         <figure class="zl">
           <img src="images/zoom-5.jpg" alt="The whole Earth from space, with South America facing us" width="940" height="1672" loading="lazy" decoding="async">
+          <img class="zl-blur" src="images/zoom-5-blur.jpg" alt="" width="940" height="1672" loading="lazy" decoding="async">
           <figcaption>Planet Earth &middot; about 10<sup>7</sup> m</figcaption>
         </figure>
         <div class="zl-globe" data-layer="5" aria-hidden="true">
@@ -648,10 +658,12 @@ html:not(.zoom-on) .zl figcaption{margin-top:10px; font-family:var(--font-serif)
         </div>
         <figure class="zl">
           <img src="images/zoom-6.jpg" alt="Earth and the Moon, small against the dark, with the Sun's glare at the edge" width="940" height="1672" loading="lazy" decoding="async">
+          <img class="zl-blur" src="images/zoom-6-blur.jpg" alt="" width="940" height="1672" loading="lazy" decoding="async">
           <figcaption>Earth and Moon &middot; about 10<sup>9</sup> m</figcaption>
         </figure>
         <figure class="zl">
           <img src="images/zoom-7.jpg" alt="The solar system: the Sun and the planets lined up along their orbits" width="940" height="1672" loading="lazy" decoding="async">
+          <img class="zl-blur" src="images/zoom-7-blur.jpg" alt="" width="940" height="1672" loading="lazy" decoding="async">
           <figcaption>The solar system &middot; about 10<sup>13</sup> m</figcaption>
         </figure>
       </div>
@@ -1096,157 +1108,240 @@ html:not(.zoom-on) .zl figcaption{margin-top:10px; font-family:var(--font-serif)
   }
 
   // ── Powers of Ten zoom ──
-  // Each step zooms out from one image to the next. ZOOM_STEPS[j] says where
-  // image j+1 sits inside image j+2: T is that point as a fraction of the
-  // 940x1672 frame, F how many times larger image j+2's view is. Both were
-  // measured from the photos (e.g. the street is ~370px wide in image 2 and
-  // ~80px in image 3, so F = 4.6). Step 1->2 is a crossfade instead, since
-  // the camera turns from eye level to straight down. `fade` is when in the
-  // step (0..1) the inner image hands over to the outer one.
-  var ZOOM_PERSON = [0.5043, 0.4755];            // the student in image 2
+  // One continuous camera move. Its position is "depth" L: the natural log
+  // of how far the camera has zoomed out, so equal scroll = equal zoom
+  // factor = the same perceived speed everywhere (exponential scaling).
+  //
+  // ZOOM_STEPS[j] says where image j+1 sits inside image j+2: T is that
+  // point as a fraction of the 940x1672 frame and F how many times larger
+  // image j+2's view is. All measured from the photos:
+  //  2 in 3: road ~370px wide in image 2, ~85px in image 3 -> F 4.3; T puts
+  //          the jacket (473.3,793.4 in image 2) exactly on the red dot
+  //          (476.0,935.2 in image 3).
+  //  3 in 4, 4 in 5: these scenes aren't literally inside the next photo, so
+  //          T is a residential area near the centre and Argentina.
+  //  5 in 6: circle fits: globe centre 467.3,824.1 r 408 in image 5, Earth
+  //          469.5,828 r 41 in image 6 -> F 9.95, centres coincide.
+  //  6 in 7: Earth r 41 in image 6, 400.0,823.3 r 13.3 in image 7 -> F 3.08.
+  // `fade` (step fraction) overrides when the inner image hands over;
+  // otherwise it is set by magnification (see Z_FADE_FROM).
+  var ZOOM_PERSON = [0.50354, 0.47452];          // the jacket in image 2
   var ZOOM_STEPS = [
-    null,                                        // 1 -> 2: crossfade
-    { F: 4.6, T: [0.5053, 0.5646] },             // 2 in 3: red dot on the central street
-    { F: 7,   T: [0.5000, 0.5500] },             // 3 in 4: residential area near the centre
-    { F: 10,  T: [0.5085, 0.5850] },             // 4 in 5: Argentina
-    // 5 in 6: the globe in image 5 (centre 467.3,824.1, radius 408px) is
-    // shrunk until it lies exactly on image 6's Earth (469.5,828, r 41px),
-    // so F = 408/41 and T puts the two centres together. Both backgrounds
-    // are black, so image 5 stays fully opaque and only crossfades at the
-    // very end, when the Earth is ~50px on screen and the switch from South
-    // to North America facing us isn't noticeable. rectFade: the rest of
-    // image 5 (its black sky) fades out early, leaving the globe-only copy.
+    null,                                        // 1 -> 2: crossfade (eye level -> top-down)
+    { F: 4.3,  T: [0.50556, 0.56526] },          // 2 in 3: red dot on the central street
+    { F: 7,    T: [0.50000, 0.55000] },          // 3 in 4
+    { F: 10,   T: [0.50851, 0.58498] },          // 4 in 5: Argentina
+    // 5 in 6: image 5 stays opaque until its Earth lies exactly on image 6's
+    // and is ~50px on screen, then crossfades (South -> North America facing
+    // us is then unnoticeable). rectFade: image 5's black sky fades early,
+    // leaving the globe-only copy (.zl-globe).
     { F: 9.95, T: [0.49976, 0.49594], fade: [0.9, 1], rectFade: [0.05, 0.35] },
-    { F: 3.2, T: [0.4266, 0.4922] }              // 6 in 7: the Earth beside the Sun
+    { F: 3.08, T: [0.42570, 0.49395] }           // 6 in 7: the Earth beside the Sun
   ];
+  // Crossfade window by magnification: the inner image starts handing over
+  // once the outer one is magnified 2.8x or less (beyond that the 940px-wide
+  // photos would look soft) and is gone by 1.06x.
+  var Z_FADE_FROM = 2.8, Z_FADE_TO = 1.06;
+  var Z_CROSS_DEPTH = 0.35;      // 1->2: image 2 settles from 1.42x to 1x around the jacket
+
+  // Depth at which each step starts.
+  var zDepth = [0], zSum = Z_CROSS_DEPTH;
+  for (var zj = 1; zj < ZOOM_STEPS.length; zj++) { zDepth[zj] = zSum; zSum += Math.log(ZOOM_STEPS[zj].F); }
+  var Z_DEPTH_END = zSum;
+
+  // Scroll -> depth. Scroll is in "units" (Z_SVH_PER_UNIT of viewport each):
+  // a hold on image 1, the 1->2 crossfade at a gentle rate, a ramp up to
+  // constant speed, the long constant-speed zoom, a ramp down, a hold on 7.
+  var Z_SVH_PER_UNIT = 75;
+  var Z_LEAD = 0.5, Z_CROSS = 1.3, Z_RAMP = 0.8, Z_TAIL = 0.6;
+  var zCrossRate = Z_CROSS_DEPTH / Z_CROSS;
+  var Z_CRUISE = Z_DEPTH_END - Z_CROSS_DEPTH - (zCrossRate + 1) / 2 * Z_RAMP - Z_RAMP / 2;
+  var Z_TOTAL = Z_LEAD + Z_CROSS + Z_RAMP + Z_CRUISE + Z_RAMP + Z_TAIL;
+
+  // Speed (depth per unit) at scroll unit u; cosine ramps keep it smooth.
+  function zRate(u) {
+    var a = Z_LEAD, b = a + Z_CROSS, c = b + Z_RAMP, d = c + Z_CRUISE, e = d + Z_RAMP;
+    var ramp = function (x) { return (1 - Math.cos(Math.PI * Math.min(1, Math.max(0, x)))) / 2; };
+    if (u < a) return 0;
+    if (u < b) return zCrossRate;
+    if (u < c) return zCrossRate + (1 - zCrossRate) * ramp((u - b) / Z_RAMP);
+    if (u < d) return 1;
+    if (u < e) return 1 - ramp((u - d) / Z_RAMP);
+    return 0;
+  }
+  // Depth table by numeric integration of the rate, scaled to land exactly
+  // on Z_DEPTH_END.
+  var Z_N = 1200, zTable = [0];
+  (function () {
+    var h = Z_TOTAL / Z_N, acc = 0;
+    for (var n = 1; n <= Z_N; n++) { acc += h * (zRate((n - 1) * h) + 4 * zRate((n - 0.5) * h) + zRate(n * h)) / 6; zTable.push(acc); }
+    for (var m = 0; m <= Z_N; m++) zTable[m] *= Z_DEPTH_END / acc;
+  })();
+  function zDepthAt(u) {
+    var x = Math.min(Z_N, Math.max(0, u / Z_TOTAL * Z_N)), i = Math.min(Z_N - 1, Math.floor(x));
+    return zTable[i] + (zTable[i + 1] - zTable[i]) * (x - i);
+  }
+
   var zoomEl = document.getElementById('zoom');
   var zoomLayers = Array.prototype.slice.call(zoomEl.querySelectorAll('.zl'));
+  var zoomBlurs = zoomLayers.map(function (el) { return el.querySelector('.zl-blur'); });
   var zoomGlobes = Array.prototype.slice.call(zoomEl.querySelectorAll('.zl-globe'));
   var zoomCaps = Array.prototype.slice.call(zoomEl.querySelectorAll('.zc'));
-  // Scroll is measured in "units": a short hold on image 1, then each step
-  // takes 1 unit with a pause of 0.35 between steps, and a hold on image 7.
-  var Z_LEAD = 0.4, Z_STEP = 1, Z_PAUSE = 0.35, Z_TAIL = 0.6;
-  var Z_TOTAL = Z_LEAD + ZOOM_STEPS.length * Z_STEP + (ZOOM_STEPS.length - 1) * Z_PAUSE + Z_TAIL;
   var zoomAnims = [];
-  var zoomScrollHandler = null;
+  var zoomRun = null;
 
-  function smooth(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * (3 - 2 * x); }
-  function stepStart(j) { return Z_LEAD + j * (Z_STEP + Z_PAUSE); }
-
-  // Where we are at scroll unit u: the step in progress (or -1) and how far
-  // through it (eased), plus how many steps are already finished.
-  function zoomPhase(u) {
-    for (var j = 0; j < ZOOM_STEPS.length; j++) {
-      var a = stepStart(j);
-      if (u < a) return { j: -1, t: 0, done: j };
-      if (u <= a + Z_STEP) return { j: j, t: smooth(0, 1, (u - a) / Z_STEP), done: j };
-    }
-    return { j: -1, t: 0, done: ZOOM_STEPS.length };
-  }
-
+  function smoother(a, b, x) { x = Math.min(1, Math.max(0, (x - a) / (b - a))); return x * x * x * (x * (x * 6 - 15) + 10); }
   function xf(tx, ty, sc) {
-    return 'translate(' + (tx * 100).toFixed(3) + '%, ' + (ty * 100).toFixed(3) + '%) scale(' + sc.toFixed(5) + ')';
+    return 'translate(' + (tx * 100).toFixed(4) + '%, ' + (ty * 100).toFixed(4) + '%) scale(' + sc.toFixed(6) + ')';
   }
 
-  // State of image i at scroll unit u. Maths for step j (inner image j,
-  // outer image j+1, target T with o = T - centre): the zoom z = F^(1-t)
-  // shrinks steadily from F to 1. The outer image is scaled by z about its
-  // centre and shifted so T sits at o*t on screen (screen centre at t=0,
-  // its natural place at t=1). The inner image sits exactly on T at size
-  // z/F, so it lines up with its own spot in the outer image, and fades
-  // out late in the step to hand over to the outer image's detail.
-  // part 'globe' is the globe-only copy of an image (see .zl-globe): it
-  // moves with its image but keeps the late fade when the step has rectFade.
-  function layerState(i, u, part) {
-    var ph = zoomPhase(u), j = ph.j, t = ph.t;
-    if (j < 0) return { tr: xf(0, 0, 1), op: i === ph.done ? 1 : 0, vis: i === ph.done };
+  // Which step depth L falls in: -1 before the move, 0 the crossfade,
+  // 1..5 the zoom steps, 6 after; t = progress through it (linear in depth).
+  function zStep(L) {
+    if (L <= 0) return { j: -1, t: 0 };
+    if (L < Z_CROSS_DEPTH) return { j: 0, t: L / Z_CROSS_DEPTH };
+    for (var j = 1; j < ZOOM_STEPS.length; j++) {
+      var lnF = Math.log(ZOOM_STEPS[j].F);
+      if (L < zDepth[j] + lnF) return { j: j, t: (L - zDepth[j]) / lnF };
+    }
+    return { j: ZOOM_STEPS.length, t: 0 };
+  }
+
+  // State of image i at depth L. Zoom step j (inner image j, outer j+1,
+  // o = T - centre, z = F^(1-t) = exp(remaining depth)): the outer image is
+  // scaled by z and shifted so T sits at o*t on screen; the inner image sits
+  // exactly on T at size z/F, so every point of it lines up with its spot
+  // in the outer image. part 'globe' = image 5's globe-only copy.
+  function layerState(i, L, part) {
+    var ph = zStep(L), j = ph.j, t = ph.t;
+    if (j < 0) return { tr: xf(0, 0, 1), op: i === 0 ? 1 : 0 };
+    if (j >= ZOOM_STEPS.length) return { tr: xf(0, 0, 1), op: i === ZOOM_STEPS.length ? 1 : 0 };
     if (j === 0) {
-      if (i === 0) return { tr: xf(0, 0, 1 + 0.06 * t), op: 1 - smooth(0.1, 0.9, t), vis: true };
+      if (i === 0) return { tr: xf(0, 0, 1 + 0.05 * t), op: 1 - smoother(0.04, 0.96, t) };
       if (i === 1) {
-        var s = 1.12 - 0.12 * t, ox = ZOOM_PERSON[0] - 0.5, oy = ZOOM_PERSON[1] - 0.5;
-        return { tr: xf(ox * (1 - s), oy * (1 - s), s), op: 1, vis: true };
+        var s = Math.exp(Z_CROSS_DEPTH - L), ox = ZOOM_PERSON[0] - 0.5, oy = ZOOM_PERSON[1] - 0.5;
+        return { tr: xf(ox * (1 - s), oy * (1 - s), s), op: 1 };
       }
-    } else {
-      var st = ZOOM_STEPS[j], z = Math.pow(st.F, 1 - t), px = st.T[0] - 0.5, py = st.T[1] - 0.5;
-      var fade = st.fade || [0.3, 0.75];
-      if (st.rectFade && part !== 'globe') fade = st.rectFade;
-      if (i === j) return { tr: xf(px * t, py * t, z / st.F), op: 1 - smooth(fade[0], fade[1], t), vis: true };
-      if (i === j + 1) return { tr: xf(px * (t - z), py * (t - z), z), op: 1, vis: true };
+      return { tr: xf(0, 0, 1), op: 0 };
     }
-    return { tr: xf(0, 0, 1), op: 0, vis: false };
+    var st = ZOOM_STEPS[j], lnF = Math.log(st.F), z = Math.exp(lnF * (1 - t));
+    var px = st.T[0] - 0.5, py = st.T[1] - 0.5;
+    var fade = st.fade || [Math.max(0, 1 - Math.log(Z_FADE_FROM) / lnF), 1 - Math.log(Z_FADE_TO) / lnF];
+    if (st.rectFade && part !== 'globe') fade = st.rectFade;
+    if (i === j) return { tr: xf(px * t, py * t, z / st.F), op: 1 - smoother(fade[0], fade[1], t) };
+    if (i === j + 1) return { tr: xf(px * (t - z), py * (t - z), z), op: 1 };
+    return { tr: xf(0, 0, 1), op: 0 };
   }
 
-  function zoomFocus(u) { var ph = zoomPhase(u); return ph.j < 0 ? ph.done : ph.j + ph.t; }
-
-  // Sample positions: every step boundary plus 16 points inside each step,
-  // enough for linear interpolation to follow the exponential zoom.
-  function zoomSamples() {
-    var us = [0];
-    for (var j = 0; j < ZOOM_STEPS.length; j++) {
-      var a = stepStart(j);
-      for (var k = 0; k <= 16; k++) us.push(a + Z_STEP * k / 16);
-    }
-    us.push(Z_TOTAL);
-    return us.filter(function (u, n) { return n === 0 || u > us[n - 1]; });
+  function visibleLayers(L) {
+    var ph = zStep(L);
+    if (ph.j < 0) return [0];
+    if (ph.j >= ZOOM_STEPS.length) return [ZOOM_STEPS.length];
+    return [ph.j, ph.j + 1];
   }
 
+  function zoomFocus(L) {
+    var ph = zStep(L);
+    if (ph.j < 0) return 0;
+    if (ph.j >= ZOOM_STEPS.length) return ZOOM_STEPS.length;
+    return ph.j + ph.t;
+  }
+
+  // Keyframes: 480 samples along the scroll, enough for linear
+  // interpolation to follow the exponential zoom closely.
   function buildZoom() {
-    var us = zoomSamples();
-    var timing;
-    if (typeof ViewTimeline === 'function') {
-      timing = { timeline: new ViewTimeline({ subject: zoomEl }), rangeStart: 'contain 0%', rangeEnd: 'contain 100%', fill: 'both', easing: 'linear' };
-    } else {
-      timing = { duration: 1000, fill: 'both', easing: 'linear' };
-    }
+    zoomEl.style.height = 'calc(100vh + ' + (Z_TOTAL * Z_SVH_PER_UNIT).toFixed(1) + 'vh)';
+    if (CSS.supports('height', '1svh')) zoomEl.style.height = 'calc(100svh + ' + (Z_TOTAL * Z_SVH_PER_UNIT).toFixed(1) + 'svh)';
+    var SAMPLES = 480, us = [];
+    for (var n = 0; n <= SAMPLES; n++) us.push(Z_TOTAL * n / SAMPLES);
+    var timing = { duration: 1000, fill: 'both', easing: 'linear' };
     var animateLayer = function (el, i, part) {
-      var motion = [], vis = [];
-      us.forEach(function (u) {
-        var st = layerState(i, u, part), off = u / Z_TOTAL;
-        motion.push({ offset: off, transform: st.tr, opacity: st.op });
-        vis.push({ offset: off, visibility: st.vis ? 'visible' : 'hidden' });
-      });
-      zoomAnims.push(el.animate(motion, timing), el.animate(vis, timing));
+      zoomAnims.push(el.animate(us.map(function (u) {
+        var st = layerState(i, zDepthAt(u), part);
+        return { offset: u / Z_TOTAL, transform: st.tr, opacity: st.op };
+      }), timing));
     };
     zoomLayers.forEach(function (el, i) { animateLayer(el, i); });
     zoomGlobes.forEach(function (el) { animateLayer(el, +el.getAttribute('data-layer') - 1, 'globe'); });
     zoomCaps.forEach(function (el, i) {
       zoomAnims.push(el.animate(us.map(function (u) {
-        var d = zoomFocus(u) - i;
+        var d = zoomFocus(zDepthAt(u)) - i;
         return { offset: u / Z_TOTAL, opacity: Math.max(0, 1 - Math.abs(d) * 2.2),
                  transform: 'translateY(' + (-d * 18).toFixed(2) + 'px)' };
       }), timing));
     });
-    if (!timing.timeline) {
-      // No scroll timelines: drive the same animations from scroll position,
-      // at most once per frame.
-      zoomAnims.forEach(function (a) { a.pause(); });
-      var queued = false;
-      var paint = function () {
-        queued = false;
-        var r = zoomEl.getBoundingClientRect();
-        var span = Math.max(1, r.height - window.innerHeight);
-        var prog = Math.min(1, Math.max(0, -r.top / span));
-        zoomAnims.forEach(function (a) { a.currentTime = prog * 1000; });
-      };
-      zoomScrollHandler = function () { if (!queued) { queued = true; requestAnimationFrame(paint); } };
-      window.addEventListener('scroll', zoomScrollHandler, { passive: true });
-      window.addEventListener('resize', zoomScrollHandler, { passive: true });
-      paint();
-    }
+    zoomAnims.forEach(function (a) { a.pause(); });
+
+    // The animations are scrubbed from scroll position through a damped
+    // follower: the shown position eases toward the scroll position
+    // (time constant 0.12s), giving the move inertia on wheel and touch
+    // alike without taking over the page's native scrolling. Only
+    // transform and opacity are animated; the script just flips
+    // visibility so off-stage layers aren't drawn.
+    var shown = -1, target = 0, lastT = 0, lastL = 0, blurLevel = 0, frame = 0;
+    var visState = zoomLayers.map(function () { return null; });
+    var globeVis = null;
+    var readTarget = function () {
+      var r = zoomEl.getBoundingClientRect();
+      target = Math.min(1, Math.max(0, -r.top / Math.max(1, r.height - window.innerHeight)));
+    };
+    var apply = function (prog, speed) {
+      zoomAnims.forEach(function (a) { a.currentTime = prog * 1000; });
+      var L = zDepthAt(prog * Z_TOTAL), vis = visibleLayers(L);
+      zoomLayers.forEach(function (el, i) {
+        var on = vis.indexOf(i) !== -1;
+        if (visState[i] !== on) { el.style.visibility = on ? 'visible' : 'hidden'; visState[i] = on; }
+      });
+      var gOn = vis.indexOf(4) !== -1;
+      if (globeVis !== gOn) { zoomGlobes.forEach(function (g) { g.style.visibility = gOn ? 'visible' : 'hidden'; }); globeVis = gOn; }
+      // Motion blur: follows the camera's speed in depth per second, so it
+      // appears in the fast part of the move and clears as it slows.
+      var want = vis.length > 1 ? 0.75 * smoother(0.6, 2.4, speed) : 0;
+      blurLevel += (want - blurLevel) * 0.25;
+      if (blurLevel < 0.01 && want === 0) blurLevel = 0;
+      zoomBlurs.forEach(function (b, i) {
+        if (!b) return;
+        var op = vis.indexOf(i) !== -1 ? blurLevel : 0;
+        b.style.opacity = op.toFixed(3);
+        b.style.visibility = op > 0 ? 'visible' : 'hidden';
+      });
+    };
+    var tick = function (now) {
+      frame = 0;
+      var dt = lastT ? Math.min(0.1, (now - lastT) / 1000) : 1 / 60;
+      lastT = now;
+      if (shown < 0) shown = target;
+      shown += (target - shown) * (1 - Math.exp(-dt / 0.12));
+      if (Math.abs(target - shown) < 1e-5) shown = target;
+      var L = zDepthAt(shown * Z_TOTAL), speed = Math.abs(L - lastL) / dt;
+      lastL = L;
+      apply(shown, speed);
+      if (shown !== target || blurLevel > 0) frame = requestAnimationFrame(tick);
+      else lastT = 0;
+    };
+    var wake = function () { readTarget(); if (!frame) frame = requestAnimationFrame(tick); };
+    window.addEventListener('scroll', wake, { passive: true });
+    window.addEventListener('resize', wake, { passive: true });
+    readTarget(); shown = target; lastL = zDepthAt(shown * Z_TOTAL); apply(shown, 0);
+    zoomRun = { wake: wake, frameRef: function () { return frame; } };
   }
 
   function teardownZoom() {
     zoomAnims.forEach(function (a) { a.cancel(); });
     zoomAnims = [];
-    if (zoomScrollHandler) {
-      window.removeEventListener('scroll', zoomScrollHandler);
-      window.removeEventListener('resize', zoomScrollHandler);
-      zoomScrollHandler = null;
+    if (zoomRun) {
+      window.removeEventListener('scroll', zoomRun.wake);
+      window.removeEventListener('resize', zoomRun.wake);
+      if (zoomRun.frameRef()) cancelAnimationFrame(zoomRun.frameRef());
+      zoomRun = null;
     }
+    zoomEl.style.height = '';
+    zoomLayers.concat(zoomGlobes).forEach(function (el) { el.style.visibility = ''; });
+    zoomBlurs.forEach(function (b) { if (b) { b.style.opacity = ''; b.style.visibility = ''; } });
   }
 
-  // Animated zoom unless reduced motion is on; then (or without script
-  // support for element.animate) the section is a plain gallery.
+  // Animated zoom unless reduced motion is on; then (or without
+  // element.animate) the section is a plain gallery.
   var syncZoom = function () {
     teardownZoom();
     var on = !reduceMotion.matches && typeof zoomEl.animate === 'function';
@@ -1257,18 +1352,26 @@ html:not(.zoom-on) .zl figcaption{margin-top:10px; font-family:var(--font-serif)
   if (reduceMotion.addEventListener) reduceMotion.addEventListener('change', syncZoom);
   else if (reduceMotion.addListener) reduceMotion.addListener(syncZoom);
 
-  // Decode the zoom images shortly before the section arrives, so no step
-  // stalls on a 940x1672 decode mid-scroll.
+  // Preload and decode every zoom image (sharp and blurred) once the page
+  // has loaded, well before the section is reached, so no step waits on a
+  // 940x1672 decode mid-move. Also triggered early if someone jumps there.
+  var zoomWarmed = false;
+  var warmZoom = function () {
+    if (zoomWarmed) return;
+    zoomWarmed = true;
+    zoomEl.querySelectorAll('img').forEach(function (img) {
+      img.loading = 'eager';
+      if (img.decode) img.decode().catch(function () {});
+    });
+  };
+  window.addEventListener('load', function () {
+    (window.requestIdleCallback || function (fn) { return setTimeout(fn, 300); })(warmZoom);
+  });
   if ('IntersectionObserver' in window) {
-    var warmZoom = new IntersectionObserver(function (entries) {
-      if (!entries[0].isIntersecting) return;
-      warmZoom.disconnect();
-      zoomEl.querySelectorAll('img').forEach(function (img) {
-        img.loading = 'eager';
-        if (img.decode) img.decode().catch(function () {});
-      });
-    }, { rootMargin: '150% 0px' });
-    warmZoom.observe(zoomEl);
+    var warmObs = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) { warmObs.disconnect(); warmZoom(); }
+    }, { rootMargin: '200% 0px' });
+    warmObs.observe(zoomEl);
   }
 
   if ('IntersectionObserver' in window) {
