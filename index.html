@@ -320,63 +320,87 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
 /* 100lvh so the layer never resizes when a mobile toolbar collapses; the
    clip itself is held at 100svh so the hero frames exactly as before. */
 .backdrop{position:fixed; top:0; left:0; right:0; height:100vh; height:100lvh; z-index:0;
-  overflow:hidden; pointer-events:none;
-  background-color:#04101f;
-  background-image:
-    radial-gradient(1.2px 1.2px at 24px 36px, rgba(255,255,255,.75), transparent),
-    radial-gradient(1px 1px at 148px 92px, rgba(255,255,255,.55), transparent),
-    radial-gradient(1.6px 1.6px at 262px 178px, rgba(255,255,255,.8), transparent),
-    radial-gradient(1px 1px at 88px 228px, rgba(121,220,232,.7), transparent),
-    radial-gradient(1.2px 1.2px at 206px 286px, rgba(255,255,255,.5), transparent);
-  background-size:300px 300px}
+  overflow:hidden; pointer-events:none; background-color:#04101f}
 .backdrop .sky{bottom:auto; height:100%; height:100svh}
 
-/* Orbit sizing: start diameter, and where it ends up after the first screen. */
-:root{--orbit-w:72vmin; --orbit-x:40vw; --orbit-y:10vh; --orbit-s:.5}
-@media (max-width:1030px){ :root{--orbit-w:82vmin; --orbit-x:38vw; --orbit-y:14vh; --orbit-s:.56} }
-@media (max-width:579px){ :root{--orbit-w:96vw; --orbit-x:40vw; --orbit-y:16vh; --orbit-s:.62} }
-@media (max-height:620px) and (min-width:580px){ :root{--orbit-w:80vh; --orbit-x:38vw; --orbit-y:8vh; --orbit-s:.55} }
+/* Two star layers at different depths. They're oversized so they can
+   drift and shrink without their edges coming into view. */
+.stars{position:absolute; inset:-40%; will-change:transform}
+.stars-far{opacity:.75; background-size:220px 220px; background-image:
+    radial-gradient(.9px .9px at 18px 30px, rgba(255,255,255,.6), transparent),
+    radial-gradient(.8px .8px at 120px 64px, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 190px 150px, rgba(255,255,255,.55), transparent),
+    radial-gradient(.8px .8px at 70px 182px, rgba(200,230,255,.5), transparent),
+    radial-gradient(.9px .9px at 160px 206px, rgba(255,255,255,.4), transparent)}
+.stars-near{background-size:380px 380px; background-image:
+    radial-gradient(1.4px 1.4px at 40px 60px, rgba(255,255,255,.9), transparent),
+    radial-gradient(1.8px 1.8px at 262px 128px, rgba(255,255,255,.85), transparent),
+    radial-gradient(1.2px 1.2px at 150px 250px, rgba(121,220,232,.8), transparent),
+    radial-gradient(1.5px 1.5px at 330px 320px, rgba(255,255,255,.75), transparent),
+    radial-gradient(1.3px 1.3px at 96px 352px, rgba(255,255,255,.7), transparent)}
+
+/* Orbit sizing: the planet's diameter at the top of the page. */
+:root{--orbit-w:72vmin}
+@media (max-width:1030px){ :root{--orbit-w:82vmin} }
+@media (max-width:579px){ :root{--orbit-w:96vw} }
+@media (max-height:620px) and (min-width:580px){ :root{--orbit-w:80vh} }
 
 .orbit{position:absolute; left:50%; top:50vh; top:50svh; width:var(--orbit-w); height:var(--orbit-w);
   margin:calc(var(--orbit-w) / -2) 0 0 calc(var(--orbit-w) / -2); opacity:0;
-  will-change:transform, opacity}
-.orbit-spin{width:100%; height:100%; will-change:transform}
+  will-change:opacity}
+.orbit-zoom{width:100%; height:100%; will-change:transform, opacity}
 .orbit img{display:none; width:100%; height:100%; object-fit:contain}
 .orbit img.is-shown{display:block}
 
-/* ── SCROLL-DRIVEN PLANET ──────────────────────────────────────────────
+/* ── SCROLL-DRIVEN "CAMERA PULLING AWAY" ───────────────────────────────
    Progress comes from the page's scroll position, never from time, so
    scrolling back up plays everything in reverse.
-   · .sky         fades out and eases forward over the first 80vh
-   · .orbit       fades in, shrinks by --orbit-s and drifts by --orbit-x/y
-                  over the first 100vh, then stays parked there
-   · .orbit-spin  rotates 220deg across the whole page
+   · .sky         the hero clip fades out and recedes slightly (first 70vh)
+   · .orbit       the planet cut-out fades in over the clip (first 45vh)
+   · .orbit-zoom  across the whole page the planet shrinks as if the
+                  camera were moving away at a steady speed:
+                  scale = 1 / (1 + 6p), so it ends at about 1/7 size.
+                  It also rises 6vh and fades to 75% opacity.
+   · .stars-*     across the whole page the stars drift and shrink far
+                  less than the planet (near layer more than far layer),
+                  which is the parallax that sells the distance.
    Native path: CSS scroll-driven animations (compositor-run, no JS).
    Fallback (.sfx-js, set by script where unsupported): one rAF-throttled
-   handler writes --sky/--drift/--spin on .backdrop and the same maths
+   handler writes --sky/--fade/--zoom on .backdrop and the same maths
    runs in calc(). Both paths are skipped under reduced motion. */
-@keyframes sky-out{ to{opacity:0; transform:scale(1.1)} }
-@keyframes orbit-drift{
-  0%{opacity:0; transform:none}
-  35%{opacity:1}
-  100%{opacity:1; transform:translate(var(--orbit-x), var(--orbit-y)) scale(var(--orbit-s))}
+@keyframes sky-out{ to{opacity:0; transform:scale(.96)} }
+@keyframes orbit-in{ to{opacity:1} }
+/* Stops sample 1/(1+6p), -6p vh and 1-.25p so the curve stays smooth. */
+@keyframes orbit-zoom{
+  0%  {opacity:1;     transform:translateY(0)       scale(1)}
+  5%  {opacity:.9875; transform:translateY(-.3vh)   scale(.7692)}
+  10% {opacity:.975;  transform:translateY(-.6vh)   scale(.625)}
+  20% {opacity:.95;   transform:translateY(-1.2vh)  scale(.4545)}
+  35% {opacity:.9125; transform:translateY(-2.1vh)  scale(.3226)}
+  50% {opacity:.875;  transform:translateY(-3vh)    scale(.25)}
+  70% {opacity:.825;  transform:translateY(-4.2vh)  scale(.1923)}
+  100%{opacity:.75;   transform:translateY(-6vh)    scale(.1429)}
 }
-@keyframes orbit-spin{ to{transform:rotate(220deg)} }
+@keyframes stars-far{ to{transform:translateY(-6vh) scale(.94)} }
+@keyframes stars-near{ to{transform:translateY(-16vh) scale(.84)} }
 
 @media (prefers-reduced-motion:no-preference){
   @supports (animation-timeline:scroll()){
     .backdrop .sky{animation:sky-out linear both; animation-timeline:scroll(root);
-      animation-range:0 80vh}
-    .orbit{animation:orbit-drift linear both; animation-timeline:scroll(root);
-      animation-range:0 100vh}
-    .orbit-spin{animation:orbit-spin linear both; animation-timeline:scroll(root)}
+      animation-range:0 70vh}
+    .orbit{animation:orbit-in linear both; animation-timeline:scroll(root);
+      animation-range:0 45vh}
+    .orbit-zoom{animation:orbit-zoom linear both; animation-timeline:scroll(root)}
+    .stars-far{animation:stars-far linear both; animation-timeline:scroll(root)}
+    .stars-near{animation:stars-near linear both; animation-timeline:scroll(root)}
   }
   .sfx-js .backdrop .sky{opacity:calc(1 - var(--sky, 0));
-    transform:scale(calc(1 + .1 * var(--sky, 0)))}
-  .sfx-js .orbit{opacity:min(1, calc(var(--drift, 0) / .35));
-    transform:translate(calc(var(--orbit-x) * var(--drift, 0)), calc(var(--orbit-y) * var(--drift, 0)))
-              scale(calc(1 + (var(--orbit-s) - 1) * var(--drift, 0)))}
-  .sfx-js .orbit-spin{transform:rotate(calc(220deg * var(--spin, 0)))}
+    transform:scale(calc(1 - .04 * var(--sky, 0)))}
+  .sfx-js .orbit{opacity:var(--fade, 0)}
+  .sfx-js .orbit-zoom{opacity:calc(1 - .25 * var(--zoom, 0));
+    transform:translateY(calc(-6vh * var(--zoom, 0))) scale(calc(1 / (1 + 6 * var(--zoom, 0))))}
+  .sfx-js .stars-far{transform:translateY(calc(-6vh * var(--zoom, 0))) scale(calc(1 - .06 * var(--zoom, 0)))}
+  .sfx-js .stars-near{transform:translateY(calc(-16vh * var(--zoom, 0))) scale(calc(1 - .16 * var(--zoom, 0)))}
 }
 
 /* ── SECTIONS ──────────────────────────────────────────────────────── */
@@ -475,9 +499,12 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
 </style>
 </head>
 <body>
-<!-- Fixed background: the hero clip plus the scroll-driven "orbit" planet.
-     Sections scroll over it; see SCROLL-DRIVEN PLANET in the CSS. -->
+<!-- Fixed background: two parallax star layers, the hero clip and the
+     scroll-driven "orbit" planet. Sections scroll over it; see
+     SCROLL-DRIVEN "CAMERA PULLING AWAY" in the CSS. -->
 <div class="backdrop" aria-hidden="true">
+  <div class="stars stars-far"></div>
+  <div class="stars stars-near"></div>
   <div class="sky">
     <video data-planet="earth" class="is-active" autoplay muted loop playsinline preload="auto"
       src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202422_3ffb4889-c520-432d-8458-038009eb40df.mp4"
@@ -493,7 +520,7 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
       aria-hidden="true"></video>
   </div>
   <div class="orbit">
-    <div class="orbit-spin">
+    <div class="orbit-zoom">
       <img data-planet="earth" class="is-shown" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png">
       <img data-planet="venus" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png">
       <img data-planet="mars" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png">
@@ -968,9 +995,9 @@ p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
       var y = window.pageYOffset || root.scrollTop;
       var vh = window.innerHeight;
       var max = Math.max(1, root.scrollHeight - vh);
-      backdrop.style.setProperty('--sky', clamp01(y / (vh * 0.8)).toFixed(4));
-      backdrop.style.setProperty('--drift', clamp01(y / vh).toFixed(4));
-      backdrop.style.setProperty('--spin', clamp01(y / max).toFixed(4));
+      backdrop.style.setProperty('--sky', clamp01(y / (vh * 0.7)).toFixed(4));
+      backdrop.style.setProperty('--fade', clamp01(y / (vh * 0.45)).toFixed(4));
+      backdrop.style.setProperty('--zoom', clamp01(y / max).toFixed(4));
     };
     var queue = function () { if (!queued) { queued = true; requestAnimationFrame(paint); } };
     var syncFallback = function () {
