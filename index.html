@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SpaceEdu — Planet Earth</title>
+<meta name="description" content="SpaceEdu — learn about the planets. Course enrollment starts today.">
+<meta name="theme-color" content="#04101f">
+<link rel="icon" type="image/png" href="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://d8j0ntlcm91z4.cloudfront.net" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Poppins:wght@500;600&family=Prata&display=swap">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+
+:root{
+  --dw:1353; --dh:1163; --gutter:25;
+  --u:max(min(.72px, calc(100vh / 700)), min(calc(100vw / 1353), calc(100vh / 1163)));
+  --dh-px:calc(1163 * var(--u));
+  --vshift:calc(max(0px, (100vh - var(--dh-px))) * .42);
+  --ink:#ffffff; --cyan:#79dce8; --cyan-logo:#5fd0e1;
+  --rule:rgba(255,255,255,.23); --btn-ink:#071227;
+  --font-serif:'Prata', Georgia, serif;
+  --font-body:'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-logo:'Poppins', sans-serif;
+}
+@supports (height:100dvh){
+  :root{
+    --u:max(min(.72px, calc(100dvh / 700)), min(calc(100vw / 1353), calc(100dvh / 1163)));
+    --vshift:calc(max(0px, (100dvh - var(--dh-px))) * .42);
+  }
+}
+html,body{height:100%}
+body{background:#04101f; color:var(--ink); font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  text-rendering:geometricPrecision; overflow:hidden}
+
+/* ── STAGE ─────────────────────────────────────────────────────────── */
+.stage{position:fixed; inset:0; overflow:hidden; isolation:isolate}
+.sky{position:absolute; inset:0; z-index:0;
+  background-image:url("https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_508c64b8-a31e-4290-bdfc-1187df70e0a6.png");
+  background-size:cover; background-position:center; background-repeat:no-repeat}
+.ui{position:absolute; inset:0; z-index:3}
+
+/* ── BACKDROP ──────────────────────────────────────────────────────── */
+.sky video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  display:block; opacity:0; transition:opacity .22s linear}
+.sky video.is-active{opacity:1}
+@media (prefers-reduced-motion:reduce){ .sky video{display:none} }
+
+/* ── SIDE PLANET SLOTS ─────────────────────────────────────────────── */
+.planet{position:absolute; z-index:-1; padding:0; border:0; background:none;
+  -webkit-appearance:none; appearance:none; line-height:0; cursor:pointer;
+  pointer-events:auto;
+  transition:transform .45s cubic-bezier(.22,1,.36,1)}
+.planet img{display:none; width:100%; height:auto}
+.planet img.is-shown{display:block}
+.planet:hover{transform:scale(1.045)}
+.planet:active{transform:scale(.99)}
+.planet-l{width:calc(143 * var(--u)); left:calc(-69.5 * var(--u)); top:calc(-38.3 * var(--u))}
+.planet-r{width:calc(143 * var(--u)); right:calc(-64.7 * var(--u)); top:calc(-40.6 * var(--u))}
+@media (prefers-reduced-motion:reduce){
+  .planet{transition:none} .planet:hover,.planet:active{transform:none} }
+
+/* ── LAYOUT ────────────────────────────────────────────────────────── */
+.copy{position:absolute; inset:0; transform:translateY(var(--vshift)); pointer-events:none}
+.copy a{pointer-events:auto}
+.col{position:absolute; left:0; right:calc(var(--gutter) * var(--u)); text-align:center}
+
+/* ── NAV ───────────────────────────────────────────────────────────── */
+.navbar{position:absolute; top:0; left:0; right:0; z-index:6; height:calc(88 * var(--u))}
+.navbar::after{content:""; position:absolute; left:calc(25 * var(--u));
+  right:calc(49 * var(--u)); top:calc(86 * var(--u)); height:calc(2 * var(--u));
+  background:var(--rule)}
+.navrow{position:absolute; left:calc(25 * var(--u)); right:calc(49 * var(--u)); top:0;
+  height:calc(86 * var(--u)); display:flex; align-items:center; justify-content:space-between}
+.logo{font-family:var(--font-logo); font-weight:600; font-size:calc(18.4 * var(--u));
+  letter-spacing:calc(-0.15 * var(--u)); line-height:1; color:#fff; text-decoration:none;
+  white-space:nowrap; position:relative; top:calc(-1 * var(--u))}
+.logo i{font-style:normal; color:var(--cyan-logo)}
+.burger{display:none; position:relative; width:calc(46 * var(--u)); height:calc(46 * var(--u));
+  padding:0; border:0; background:none; cursor:pointer; flex-direction:column;
+  align-items:center; justify-content:center; gap:calc(6 * var(--u)); flex:none}
+.burger span{display:block; width:calc(24 * var(--u)); height:calc(2 * var(--u));
+  border-radius:calc(2 * var(--u)); background:#fff;
+  transition:transform .28s cubic-bezier(.4,0,.2,1), opacity .18s linear}
+.navrow[data-open="true"] .burger span:nth-child(1){transform:translateY(calc(8 * var(--u))) rotate(45deg)}
+.navrow[data-open="true"] .burger span:nth-child(2){opacity:0}
+.navrow[data-open="true"] .burger span:nth-child(3){transform:translateY(calc(-8 * var(--u))) rotate(-45deg)}
+.links{display:flex; align-items:center}
+.links a{position:relative; display:flex; align-items:center; height:calc(86 * var(--u));
+  font-size:calc(18.4 * var(--u)); font-weight:400; line-height:1; color:#fff;
+  text-decoration:none; padding:0 calc(17.5 * var(--u));
+  letter-spacing:calc(-1 * var(--u)); white-space:nowrap}
+.links a[aria-current="page"]::after{content:""; position:absolute; left:0; right:0;
+  top:calc(83.5 * var(--u)); height:calc(4 * var(--u)); background:var(--cyan);
+  border-radius:calc(1 * var(--u))}
+.links a:nth-child(3){letter-spacing:calc(-1.75 * var(--u))}
+.links a:nth-child(2){margin-left:calc(24 * var(--u))}
+.links a:nth-child(3){margin-left:calc(26 * var(--u))}
+.links a:nth-child(4){margin-left:calc(27 * var(--u))}
+.links a.enroll{margin-left:calc(28.5 * var(--u)); width:calc(107 * var(--u));
+  height:calc(38 * var(--u)); border-radius:calc(19 * var(--u)); display:flex;
+  align-items:center; justify-content:center; font-size:calc(17 * var(--u));
+  font-weight:600; letter-spacing:calc(-0.75 * var(--u)); line-height:1;
+  color:var(--btn-ink); text-decoration:none; padding-top:calc(2 * var(--u));
+  background:linear-gradient(180deg,#ffffff 0%,#d8ecfe 9%,#dceefe 72%,#f4f9ff 100%);
+  box-shadow:0 calc(3 * var(--u)) calc(14 * var(--u)) rgba(255,255,255,.22),
+             inset 0 0 0 calc(1.5 * var(--u)) rgba(255,255,255,.92);
+  flex:none}
+
+/* ── HERO COPY ─────────────────────────────────────────────────────── */
+.eyebrow{top:calc(188.8 * var(--u)); font-size:calc(30.45 * var(--u)); font-weight:500;
+  line-height:1; letter-spacing:calc(4 * var(--u)); text-indent:calc(4 * var(--u)); color:#fff}
+h1.title{top:calc(268 * var(--u)); font-family:var(--font-serif); font-weight:400;
+  font-size:calc(112.4 * var(--u)); line-height:1; letter-spacing:calc(2 * var(--u));
+  text-indent:calc(2 * var(--u)); color:#fff}
+.rule{top:calc(405.5 * var(--u)); height:calc(5 * var(--u)); font-size:0; line-height:0;
+  padding-right:calc(2 * var(--u))}
+.rule span{display:inline-block; vertical-align:top; width:calc(100 * var(--u));
+  height:100%; border-radius:calc(2.5 * var(--u)); background:var(--cyan)}
+p.lede{top:calc(433.2 * var(--u)); font-size:calc(18.36 * var(--u)); font-weight:400;
+  line-height:calc(30 * var(--u)); color:rgba(255,255,255,.95)}
+
+/* ── CTA ROW ───────────────────────────────────────────────────────── */
+.cta{top:calc(597 * var(--u)); height:calc(66 * var(--u)); isolation:isolate}
+.cta a{display:inline-flex; align-items:center; justify-content:center;
+  width:calc(216 * var(--u)); height:calc(66 * var(--u)); border-radius:calc(33 * var(--u));
+  font-size:calc(17 * var(--u)); font-weight:700; letter-spacing:0; text-indent:0;
+  line-height:1; color:var(--btn-ink); text-decoration:none; padding-top:calc(2 * var(--u));
+  background:linear-gradient(180deg,#ffffff 0%,#d6e8f8 4%,#d9ecfe 72%,#ffffff 100%);
+  box-shadow:0 calc(10 * var(--u)) calc(18 * var(--u)) calc(-8 * var(--u)) rgba(255,255,255,.50),
+             0 0 calc(26 * var(--u)) rgba(255,255,255,.18),
+             inset 0 0 0 calc(2 * var(--u)) rgba(255,255,255,.9)}
+.label{position:absolute; top:calc(33 * var(--u)); font-family:var(--font-serif);
+  font-weight:400; font-size:calc(17.8 * var(--u)); letter-spacing:calc(4.6 * var(--u));
+  line-height:1; color:#fff; white-space:nowrap}
+.label.label-l{left:calc(111 * var(--u))}
+.label.label-r{right:calc(104 * var(--u))}
+
+/* ── SCROLL CONTROL ────────────────────────────────────────────────── */
+.scroll{position:absolute; z-index:4; left:50%;
+  margin-left:calc((-48 - (var(--gutter) / 2)) * var(--u)); bottom:calc(68 * var(--u));
+  width:calc(96 * var(--u)); height:calc(96 * var(--u)); border-radius:50%;
+  background:rgba(24,30,42,.70); -webkit-backdrop-filter:blur(calc(6 * var(--u)));
+  backdrop-filter:blur(calc(6 * var(--u))); border:0; display:flex; align-items:center;
+  justify-content:center; cursor:pointer}
+.scroll svg{width:calc(20 * var(--u)); height:calc(25 * var(--u)); display:block}
+
+/* ── FOCUS ─────────────────────────────────────────────────────────── */
+.scroll:focus-visible,.links a:focus-visible,.enroll:focus-visible,
+.cta a:focus-visible,.logo:focus-visible{
+  outline:calc(2 * var(--u)) solid var(--cyan); outline-offset:calc(3 * var(--u))}
+.planet:focus-visible{outline:calc(2 * var(--u)) solid var(--cyan);
+  outline-offset:calc(6 * var(--u)); border-radius:50%}
+.burger:focus-visible{outline:calc(2 * var(--u)) solid var(--cyan);
+  outline-offset:calc(2 * var(--u)); border-radius:calc(10 * var(--u))}
+
+/* ── ENTRANCE + SWITCH MOTION ──────────────────────────────────────── */
+/* Masked lines rise into place on load; on a planet switch they exit
+   upward, the text is swapped while hidden, then they rise again. */
+.ent-mask{display:inline-block; vertical-align:top; overflow:hidden; text-indent:0;
+  padding:calc(6 * var(--u)) calc(4 * var(--u)); margin:calc(-6 * var(--u)) calc(-4 * var(--u))}
+.ent-line{display:inline-block; text-indent:0; transform:translateY(110%);
+  transition:transform .9s cubic-bezier(.22,1,.36,1)}
+.title .ent-line{transition-delay:.08s}
+.copy.is-in .ent-line{transform:none}
+.copy.is-out .title .ent-line{transform:translateY(-110%); transition:transform .34s cubic-bezier(.55,0,.8,.3)}
+.copy.is-swap .title .ent-line{transform:translateY(110%); transition:none}
+.rule span{transform:scaleX(0); transition:transform .8s cubic-bezier(.22,1,.36,1) .28s}
+.copy.is-in .rule span{transform:none}
+p.lede,.cta{opacity:0; transform:translateY(calc(14 * var(--u)));
+  transition:opacity .7s ease .36s, transform .9s cubic-bezier(.22,1,.36,1) .36s}
+.cta{transition-delay:.48s}
+.copy.is-in p.lede,.copy.is-in .cta{opacity:1; transform:none}
+.copy.is-out p.lede,.copy.is-swap p.lede{opacity:0; transform:none; transition:opacity .3s ease}
+.label{transition:opacity .3s ease}
+.copy.is-out .label,.copy.is-swap .label{opacity:0}
+
+/* ════════════════════════════════════════════════════════════════════
+   RESPONSIVE — six tiers, source order matters
+   ════════════════════════════════════════════════════════════════════ */
+
+/* A) NAV COLLAPSE */
+@media (max-width:1030px), (max-height:620px){
+  .navrow{left:calc(25 * var(--u)); right:calc(25 * var(--u))}
+  .burger{display:flex}
+  .links{position:absolute; top:calc(96 * var(--u)); right:0; z-index:5;
+    width:min(calc(324 * var(--u)), calc(100vw - 50 * var(--u)));
+    flex-direction:column; align-items:stretch; padding:calc(12 * var(--u));
+    border-radius:calc(20 * var(--u)); background:rgba(9,21,42,.84);
+    -webkit-backdrop-filter:blur(calc(18 * var(--u)));
+    backdrop-filter:blur(calc(18 * var(--u)));
+    border:calc(1 * var(--u)) solid rgba(255,255,255,.14);
+    box-shadow:0 calc(18 * var(--u)) calc(44 * var(--u)) rgba(2,8,20,.55);
+    opacity:0; visibility:hidden; transform:translateY(calc(-10 * var(--u)));
+    transition:opacity .24s ease, transform .28s cubic-bezier(.4,0,.2,1), visibility .28s}
+  .navrow[data-open="true"] .links{opacity:1; visibility:visible; transform:none}
+  .links a:nth-child(n){margin-left:0; height:auto; justify-content:flex-start;
+    padding:calc(14 * var(--u)) calc(16 * var(--u)); font-size:calc(19 * var(--u));
+    letter-spacing:calc(-.6 * var(--u))}
+  .links a + a{border-top:calc(1 * var(--u)) solid rgba(255,255,255,.08)}
+  .links a[aria-current="page"]::after{top:auto; bottom:calc(9 * var(--u));
+    left:calc(16 * var(--u)); right:auto; width:calc(26 * var(--u)); height:calc(3 * var(--u))}
+  .links a.enroll{margin:calc(14 * var(--u)) 0 calc(2 * var(--u)); width:100%;
+    height:calc(46 * var(--u)); border-radius:calc(23 * var(--u)); justify-content:center;
+    padding-top:calc(2 * var(--u)); padding-bottom:0; font-size:calc(18 * var(--u));
+    letter-spacing:calc(-.4 * var(--u)); border-top:0}
+  .links a.enroll::after{content:none}
+}
+
+/* B) TABLET — re-proportioned, not stacked */
+@media (min-width:580px) and (max-width:1030px) and (min-height:621px){
+  :root{--gutter:0;
+    --u:min(max(min(.85px, calc(100vh / 780)), min(calc(100vw / 900), calc(100vh / 1163))), 1.15px);
+    --dh-px:calc(1120 * var(--u));
+    --vshift:calc(max(0px, (100vh - var(--dh-px))) * .38)}
+  @supports (height:100dvh){
+    :root{
+      --u:min(max(min(.85px, calc(100dvh / 780)), min(calc(100vw / 900), calc(100dvh / 1163))), 1.15px);
+      --vshift:calc(max(0px, (100dvh - var(--dh-px))) * .38)}
+  }
+  .navbar::after{left:calc(25 * var(--u)); right:calc(25 * var(--u))}
+  p.lede br{display:none}
+  p.lede{max-width:calc(620 * var(--u)); margin-left:auto; margin-right:auto; text-wrap:pretty}
+  .label.label-r{right:calc(116 * var(--u))}
+}
+
+/* C) PHONE — below the nav the interface flows */
+@media (max-width:579px), (max-height:620px){
+  :root{--gutter:0;
+    --u:max(min(.92px, calc(100vh / 620)), min(calc(100vw / 430), calc(100vh / 880)));
+    --dh-px:calc(880 * var(--u));
+    --vshift:calc(max(0px, (100vh - var(--dh-px))) * .34)}
+  @supports (height:100dvh){
+    :root{
+      --u:max(min(.92px, calc(100dvh / 620)), min(calc(100vw / 430), calc(100dvh / 880)));
+      --vshift:calc(max(0px, (100dvh - var(--dh-px))) * .34)}
+  }
+  .navbar{height:calc(76 * var(--u))}
+  .navbar::after{left:calc(24 * var(--u)); right:calc(24 * var(--u)); top:calc(74 * var(--u))}
+  .navrow{left:calc(24 * var(--u)); right:calc(24 * var(--u)); height:calc(74 * var(--u))}
+  .links{top:calc(84 * var(--u))}
+  .copy{top:calc(76 * var(--u)); display:flex; flex-direction:column; align-items:center;
+    padding:calc(56 * var(--u)) calc(26 * var(--u)) 0}
+  .col{position:static; width:100%; right:auto}
+  .eyebrow{font-size:calc(20 * var(--u)); letter-spacing:calc(5 * var(--u)); text-indent:calc(5 * var(--u))}
+  h1.title{font-size:calc(86 * var(--u)); margin-top:calc(15 * var(--u))}
+  .rule{margin-top:calc(20 * var(--u)); height:calc(5 * var(--u)); padding-right:0}
+  .rule span{width:calc(84 * var(--u))}
+  p.lede{margin-top:calc(19 * var(--u)); font-size:calc(15.5 * var(--u));
+    line-height:calc(26 * var(--u)); max-width:calc(400 * var(--u)); text-wrap:balance}
+  p.lede br{display:none}
+  .cta{top:auto; margin-top:calc(32 * var(--u)); height:calc(60 * var(--u)); position:relative}
+  .cta a{width:calc(190 * var(--u)); height:calc(60 * var(--u)); border-radius:calc(30 * var(--u))}
+  .label{top:50%; transform:translateY(-50%); font-size:calc(16 * var(--u));
+    letter-spacing:calc(4 * var(--u))}
+  .label.label-l{left:calc(56 * var(--u))}
+  .label.label-r{right:calc(60 * var(--u))}
+  /* Slots re-centred on the 60u row; the 26u column padding is added back
+     so each sphere's centre still sits at the screen edge. */
+  .planet-l{width:calc(118 * var(--u)); left:calc(-84 * var(--u)); top:calc(-29 * var(--u))}
+  .planet-r{width:calc(118 * var(--u)); right:calc(-84 * var(--u)); top:calc(-29 * var(--u))}
+  .scroll{width:calc(64 * var(--u)); height:calc(64 * var(--u));
+    margin-left:calc(-32 * var(--u)); bottom:calc(30 * var(--u))}
+  .scroll svg{width:calc(15 * var(--u)); height:calc(19 * var(--u))}
+}
+
+/* D) NARROW PHONE — under ~480px the labels would collide with the 190u
+   button, so they drop beneath their planets instead. */
+@media (max-width:479px) and (min-height:621px){
+  .planet-l,.planet-r{width:calc(112 * var(--u)); top:calc(-26 * var(--u))}
+  .planet-l{left:calc(-82 * var(--u))}
+  .planet-r{right:calc(-82 * var(--u))}
+  .label{top:calc(100% + 40 * var(--u)); transform:none; font-size:calc(14 * var(--u));
+    letter-spacing:calc(3.4 * var(--u))}
+  .label.label-l{left:calc(-6 * var(--u))}
+  .label.label-r{right:calc(-9 * var(--u))}
+}
+
+/* E) SHORT LANDSCAPE — phone flow, tightened so the CTA row stays on screen */
+@media (max-height:620px) and (min-width:580px){
+  .copy{padding-top:calc(28 * var(--u))}
+  .eyebrow{font-size:calc(17 * var(--u))}
+  h1.title{font-size:calc(68 * var(--u)); margin-top:calc(10 * var(--u))}
+  .rule{margin-top:calc(14 * var(--u))}
+  p.lede{margin-top:calc(14 * var(--u)); max-width:calc(560 * var(--u))}
+  .cta{margin-top:calc(22 * var(--u))}
+  .label.label-l{left:calc(80 * var(--u))}
+  .label.label-r{right:calc(84 * var(--u))}
+  .scroll{display:none}
+}
+
+/* F) TOUCH + REDUCED MOTION */
+@media (hover:none){
+  .planet:hover{transform:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .ent-line,.rule span,p.lede,.cta,.label,.burger span,.links{transition:none !important}
+  .ent-line,.copy .ent-line{transform:none !important}
+  .rule span{transform:none}
+  p.lede,.cta{opacity:1; transform:none}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="sky">
+    <video data-planet="earth" class="is-active" autoplay muted loop playsinline preload="auto"
+      src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202422_3ffb4889-c520-432d-8458-038009eb40df.mp4"
+      poster="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_508c64b8-a31e-4290-bdfc-1187df70e0a6.png"
+      aria-hidden="true"></video>
+    <video data-planet="venus" muted loop playsinline preload="none"
+      data-src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202422_b211cd74-013b-4dd3-bfd0-64491d8696fa.mp4"
+      poster="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_cf55d1d8-7b59-4a64-80da-d72052ae974e.png"
+      aria-hidden="true"></video>
+    <video data-planet="mars" muted loop playsinline preload="none"
+      data-src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202422_51eae59a-2459-4c84-907c-cc5edfe5fea7.mp4"
+      poster="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_0ba6de7c-285d-43dc-b7ab-8c54c73707cb.png"
+      aria-hidden="true"></video>
+  </div>
+
+  <div class="ui">
+    <header class="navbar">
+      <div class="navrow">
+        <a class="logo" href="#">space<i>edu</i></a>
+        <nav class="links" id="site-nav">
+          <a href="#" aria-current="page">Planets</a>
+          <a href="#">Tution</a>
+          <a href="#">Tutorials</a>
+          <a href="#">Blog</a>
+          <a class="enroll" href="#">Enroll</a>
+        </nav>
+        <button class="burger" type="button" aria-label="Open navigation"
+                aria-expanded="false" aria-controls="site-nav">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <div class="copy">
+      <div class="col eyebrow"><span class="ent-mask"><span class="ent-line">PLANET</span></span></div>
+      <h1 class="col title"><span class="ent-mask"><span class="ent-line">EARTH</span></span></h1>
+      <div class="col rule"><span></span></div>
+      <p class="col lede">Learn more about the fascinating details that we call our home,
+         Planet Earth. Course enrollment <br>starts today. Early Bird tickets typically
+         last a week, don&rsquo;t miss out!</p>
+      <div class="col cta">
+        <button class="planet planet-l" type="button" data-slot="l">
+          <img data-planet="earth" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png">
+          <img data-planet="venus" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png">
+          <img data-planet="mars" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png">
+        </button>
+        <button class="planet planet-r" type="button" data-slot="r">
+          <img data-planet="earth" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202005_3346cc4d-ec3b-44ab-825c-b18e49f5021a.png">
+          <img data-planet="venus" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202012_640b239a-d08a-4200-adb2-741bbe129ac8.png">
+          <img data-planet="mars" alt="" decoding="async" src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202018_3d559490-f613-4ed7-a3bb-3b7e9fc90fb8.png">
+        </button>
+        <a href="#">GET STARTED</a>
+        <span class="label label-l"></span>
+        <span class="label label-r"></span>
+      </div>
+    </div>
+  </div>
+
+  <button class="scroll" type="button" aria-label="Scroll to next section">
+    <svg viewBox="0 0 26 33" fill="none" aria-hidden="true">
+      <path d="M13 1.5 V31.5 M1.9 20.4 L13 31.5 L24.1 20.4" stroke="#ffffff"
+            stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var ORDER = ['earth', 'venus', 'mars'];
+  var DATA = {
+    earth: {
+      name: 'EARTH',
+      still: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_508c64b8-a31e-4290-bdfc-1187df70e0a6.png',
+      lede: 'Learn more about the fascinating details that we call our home, Planet Earth. Course enrollment <br>starts today. Early Bird tickets typically last a week, don&rsquo;t miss out!'
+    },
+    venus: {
+      name: 'VENUS',
+      still: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_cf55d1d8-7b59-4a64-80da-d72052ae974e.png',
+      lede: 'Learn more about the fascinating details of our scorching, cloud-veiled twin, Planet Venus. Course enrollment <br>starts today. Early Bird tickets typically last a week, don&rsquo;t miss out!'
+    },
+    mars: {
+      name: 'MARS',
+      still: 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260827_202133_0ba6de7c-285d-43dc-b7ab-8c54c73707cb.png',
+      lede: 'Learn more about the fascinating details of the rust-red frontier, Planet Mars. Course enrollment <br>starts today. Early Bird tickets typically last a week, don&rsquo;t miss out!'
+    }
+  };
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var copy = document.querySelector('.copy');
+  var sky = document.querySelector('.sky');
+  var titleLine = document.querySelector('.title .ent-line');
+  var lede = document.querySelector('p.lede');
+  var slots = { l: document.querySelector('.planet-l'), r: document.querySelector('.planet-r') };
+  var labels = { l: document.querySelector('.label-l'), r: document.querySelector('.label-r') };
+  var videos = {};
+  Array.prototype.forEach.call(sky.querySelectorAll('video'), function (v) {
+    videos[v.getAttribute('data-planet')] = v;
+  });
+
+  var featured = 'earth';
+  var switchToken = 0;
+
+  function cap(s) { return s.charAt(0) + s.slice(1).toLowerCase(); }
+
+  // Left slot holds the previous planet in the cycle, right holds the next.
+  // Picking either side is therefore always undone by picking the other.
+  function neighbours(p) {
+    var i = ORDER.indexOf(p);
+    return { l: ORDER[(i + ORDER.length - 1) % ORDER.length], r: ORDER[(i + 1) % ORDER.length] };
+  }
+
+  function fillSlots() {
+    var n = neighbours(featured);
+    ['l', 'r'].forEach(function (side) {
+      var planet = n[side];
+      slots[side].setAttribute('data-planet', planet);
+      slots[side].setAttribute('aria-label', 'Show Planet ' + cap(DATA[planet].name));
+      Array.prototype.forEach.call(slots[side].querySelectorAll('img'), function (img) {
+        img.classList.toggle('is-shown', img.getAttribute('data-planet') === planet);
+      });
+      labels[side].textContent = DATA[planet].name;
+    });
+  }
+
+  function ensureSrc(v) {
+    if (!v.getAttribute('src') && v.getAttribute('data-src')) {
+      v.setAttribute('src', v.getAttribute('data-src'));
+      v.preload = 'auto';
+      v.load();
+    }
+  }
+
+  function warm(planet) { ensureSrc(videos[planet]); }
+
+  function showVideo(planet, token) {
+    sky.style.backgroundImage = 'url("' + DATA[planet].still + '")';
+    var next = videos[planet];
+    if (reduceMotion.matches) return;
+    ensureSrc(next);
+    var reveal = function () {
+      if (token !== switchToken) return;
+      Object.keys(videos).forEach(function (k) {
+        var v = videos[k];
+        if (v === next) return;
+        v.classList.remove('is-active');
+        // Pause once the crossfade has finished so it doesn't keep decoding.
+        setTimeout(function () { if (!v.classList.contains('is-active')) v.pause(); }, 260);
+      });
+      next.classList.add('is-active');
+    };
+    try { next.currentTime = 0; } catch (e) {}
+    var p = next.play();
+    if (p && p.catch) p.catch(function () {});
+    if (next.readyState >= 2) reveal();
+    else next.addEventListener('loadeddata', reveal, { once: true });
+  }
+
+  function setText(planet) {
+    var d = DATA[planet];
+    titleLine.textContent = d.name;
+    lede.innerHTML = d.lede;
+    document.title = 'SpaceEdu — Planet ' + cap(d.name);
+  }
+
+  function feature(planet) {
+    if (planet === featured) return;
+    featured = planet;
+    var token = ++switchToken;
+    showVideo(planet, token);
+
+    if (reduceMotion.matches) {
+      setText(planet);
+      fillSlots();
+      return;
+    }
+
+    copy.classList.remove('is-swap');
+    copy.classList.add('is-out');
+    setTimeout(function () {
+      if (token !== switchToken) return;
+      setText(planet);
+      fillSlots();
+      copy.classList.remove('is-out');
+      copy.classList.add('is-swap');
+      void copy.offsetWidth; // commit the below-the-mask position before rising
+      requestAnimationFrame(function () {
+        if (token !== switchToken) return;
+        copy.classList.remove('is-swap');
+      });
+    }, 340);
+  }
+
+  ['l', 'r'].forEach(function (side) {
+    var btn = slots[side];
+    btn.addEventListener('click', function () { feature(btn.getAttribute('data-planet')); });
+    // Start fetching a clip as soon as the user shows intent.
+    ['pointerenter', 'focus', 'touchstart'].forEach(function (ev) {
+      btn.addEventListener(ev, function () { warm(btn.getAttribute('data-planet')); }, { passive: true });
+    });
+  });
+
+  // ── Burger / nav panel ──
+  var navrow = document.querySelector('.navrow');
+  var burger = document.querySelector('.burger');
+  var nav = document.getElementById('site-nav');
+  function setOpen(open) {
+    navrow.setAttribute('data-open', open ? 'true' : 'false');
+    burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    burger.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+  }
+  burger.addEventListener('click', function () {
+    setOpen(navrow.getAttribute('data-open') !== 'true');
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && navrow.getAttribute('data-open') === 'true') {
+      setOpen(false);
+      burger.focus();
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (navrow.getAttribute('data-open') === 'true' && !navrow.contains(e.target)) setOpen(false);
+  });
+  nav.addEventListener('click', function (e) {
+    if (e.target.closest('a')) setOpen(false);
+  });
+  var desktopNav = window.matchMedia('(min-width:1031px) and (min-height:621px)');
+  var onNavMq = function () { if (desktopNav.matches) setOpen(false); };
+  if (desktopNav.addEventListener) desktopNav.addEventListener('change', onNavMq);
+  else if (desktopNav.addListener) desktopNav.addListener(onNavMq);
+
+  // ── Scroll control ──
+  document.querySelector('.scroll').addEventListener('click', function () {
+    var target = document.querySelector('.stage + *');
+    if (target && target.scrollIntoView) {
+      target.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    } else {
+      window.scrollBy({ top: window.innerHeight, behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+    }
+  });
+
+  // ── Boot ──
+  fillSlots();
+  var earth = videos.earth;
+  if (reduceMotion.matches) {
+    earth.pause();
+  } else {
+    var p0 = earth.play();
+    if (p0 && p0.catch) p0.catch(function () {});
+  }
+
+  var start = function () {
+    requestAnimationFrame(function () { requestAnimationFrame(function () { copy.classList.add('is-in'); }); });
+  };
+  // Wait briefly for Prata so the headline doesn't rise in a fallback face.
+  if (document.fonts && document.fonts.ready) {
+    var started = false;
+    var go = function () { if (!started) { started = true; start(); } };
+    document.fonts.ready.then(go);
+    setTimeout(go, 700);
+  } else {
+    start();
+  }
+
+  // Once the page has settled, quietly fetch the two side clips so the
+  // first switch is instant.
+  window.addEventListener('load', function () {
+    var idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 1500); };
+    idle(function () {
+      if (reduceMotion.matches) return;
+      var n = neighbours(featured);
+      warm(n.r);
+      warm(n.l);
+    });
+  });
+})();
+</script>
+</body>
+</html>
